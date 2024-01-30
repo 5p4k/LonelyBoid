@@ -7,18 +7,27 @@ public class BoidSpawner : MonoBehaviour
 {
     public Boid prefab;
     public uint maxCount = 40;
-    public float spawnSpeed = 1.0f;
+    public float spawnFrequency = 1.0f;
     public float spawnRadius = 10.0f;
 
-    void Awake () {
-        // for (int i = 0; i < spawnCount; i++) {
-        //     Vector3 pos = transform.position + Random.insideUnitSphere * spawnRadius;
-        //     Boid boid = Instantiate (prefab);
-        //     boid.transform.position = pos;
-        //     boid.transform.forward = Random.insideUnitSphere;
+    float lastSpawn = 0.0f;
+    List<Boid> boids = new List<Boid>();
 
-        //     boid.SetColour (colour);
-        // }
+    public float spawnPeriod {
+        get {
+            return 1.0f / spawnFrequency;
+        }
+    }
+
+    void Update() {
+        if (Time.time - lastSpawn > spawnPeriod && boids.Count < maxCount) {
+            lastSpawn = Time.time;
+            Vector3 deltaPos = spawnRadius * Random.insideUnitCircle.normalized;
+            Boid boid = Instantiate(prefab);
+            boid.transform.position = transform.position + deltaPos;
+            boid.transform.up = Random.insideUnitCircle;
+            boids.Add(boid);
+        }
     }
 }
 
