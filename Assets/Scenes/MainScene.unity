@@ -295,12 +295,13 @@ MonoBehaviour:
   spawnFrequency: 3
   spawnRadius: 5
   maxCount: 40
-  separationWeight: 2
-  alignmentWeight: 3
-  cohesionWeight: 2
+  separationWeight: 6
+  alignmentWeight: 1
+  cohesionWeight: 4
   maxAcceleration: 5
   minSpeed: 1
   maxSpeed: 10
+  maxAngularSpeedTau: 0.5
   viewRadius: 5
   viewAngleTau: 0.5
   avoidRadius: 2
