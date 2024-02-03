@@ -6,17 +6,32 @@ struct BoidData {
     float2 direction;
     float speed;
 
-    float2 matesMeanPosition;
-    float2 matesMeanDirection;
-    float2 avoidDirection;
+    float2 velocity() {
+        return speed * direction;
+    }
+
+    void setVelocity(float2 v) {
+        speed = length(v);
+        if (speed > 0.f) {
+            direction = v / speed;
+        }
+    }
 };
 
 struct FlockData {
     float viewRadius;
-    float viewAngleRadians;
+    float viewAngleTau;
+
     float avoidRadius;
-    float avoidAngleRadians;
-    float separationPower;
+    float avoidAngleTau;
+
+    float separationWeight;
+    float alignmentWeight;
+    float cohesionWeight;
+
+    float maxAcceleration;
+    float minSpeed;
+    float maxSpeed;
 };
 
 RWStructuredBuffer<BoidData> boidData;
@@ -25,22 +40,43 @@ int boidCount;
 RWStructuredBuffer<FlockData> flockData;
 int flockCount;
 
+float deltaTime;
+
+static const float PI = 3.141592653589793f;
+
+float2 bounded(float2 v, float minMagnitude, float maxMagnitude) {
+    const float inMagnitude = length(v);
+    const float outMagnitude = clamp(inMagnitude, minMagnitude, maxMagnitude);
+    if (inMagnitude > 0.f) {
+        return v * (outMagnitude / inMagnitude);
+    }
+    return float2(0.f, 0.f);
+}
+
 
 [numthreads(1024, 1, 1)]
 void CSMain (uint3 id : SV_DispatchThreadID) {
+    /*
+     * Refer to [Lebar Bajec, Zimic, Mraz, 2007]: "The computational beauty of flocking: boids revisited"
+     *
+     * Note: most other sources, including the original paper by Reynolds, do not deal with the problem of how to
+     * computationally update the velocity. This one paper above instead explains exactly how the boids drives are to
+     * be implemented into code.
+     */
     const int i = id.x;
     BoidData ithBoid = boidData[i];
 
     // Reset the properties
     uint matesCount = 0;
-    ithBoid.matesMeanPosition = float2(0, 0);
-    ithBoid.matesMeanDirection = float2(0, 0);
-    ithBoid.avoidDirection = float2(0, 0);
+    float2 matesMeanPosition = float2(0, 0);
+    float2 matesMeanVelocity = float2(0, 0);
+    float2 avoidPotential = float2(0, 0);
 
     const FlockData flock = flockData[ithBoid.flockIndex];
-    const float viewAngleCos = cos(flock.viewAngleRadians * 0.5);
-    const float avoidAngleCos = cos(flock.avoidAngleRadians * 0.5);
 
+    // Note: 1 tau = 2 pi, thus here we are halving the angle
+    const float viewAngleCos = cos(flock.viewAngleTau * PI);
+    const float avoidAngleCos = cos(flock.avoidAngleTau * PI);
 
     for (int j = 0; j < boidCount; ++j) {
         if (i == j) {
@@ -50,33 +86,54 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
         BoidData jthBoid = boidData[j];
 
         const float2 ijOffset = jthBoid.position - ithBoid.position;
-        const float ijDistance = sqrt(ijOffset.x * ijOffset.x + ijOffset.y * ijOffset.y);
+        const float ijDistance = length(ijOffset);
         const float2 ijDirection = ijOffset / ijDistance;
 
         // The dot product of two normal vector is the cosine of the angle between them
-        const float angleCos = ijDirection.x * ithBoid.direction.x + ijDirection.y * ithBoid.direction.y;
+        const float angleCos = dot(ijDirection, ithBoid.direction);
 
         if (jthBoid.flockIndex == ithBoid.flockIndex) {
             // Same flock, is it in view?
             if (angleCos < viewAngleCos && ijDistance <= flock.viewRadius) {
                 // Boids in range and in view that belong to the same flock contribute
                 ++matesCount;
-                ithBoid.matesMeanPosition += jthBoid.position;
-                ithBoid.matesMeanDirection += jthBoid.direction;
+                matesMeanPosition += jthBoid.position;
+                matesMeanVelocity += jthBoid.velocity();
             }
         }
 
         // Is in perception for avoidance?
-        if (angleCos < avoidAngleCos && ijDistance <= flock.avoidRadius) {
-            // Other boids only contribute to avoidance
-            ithBoid.avoidDirection -= ijOffset / pow(ijDistance, flock.separationPower);
+        if (angleCos < avoidAngleCos && ijDistance > 0.f && ijDistance <= flock.avoidRadius) {
+            // Other boids only contribute to avoidance in a measure equal to 1 / distance
+            avoidPotential -= ijDirection / ijDistance;
         }
     }
 
     if (matesCount > 0) {
-        ithBoid.matesMeanPosition /= matesCount;
-        ithBoid.matesMeanDirection /= matesCount;
+        matesMeanPosition /= matesCount;
+        matesMeanVelocity /= matesCount;
     }
+
+    // Compute each drive
+    const float2 alignmentDrive = normalize(matesMeanVelocity - ithBoid.velocity());
+    const float2 separationDrive = normalize(avoidPotential);
+    const float2 cohesionDrive = normalize(matesMeanPosition - ithBoid.position);
+
+    // Compute the weighted acceleration from the drive
+    const float2 acceleration = bounded(
+        flock.separationWeight * separationDrive
+            + flock.alignmentWeight * alignmentDrive
+            + flock.cohesionWeight * cohesionDrive,
+        0.f, flock.maxAcceleration);
+
+    // Compute the velocity update
+    const float2 velocity = bounded(
+        ithBoid.velocity() + deltaTime * acceleration,
+        flock.minSpeed, flock.maxSpeed);
+
+    // Compute the update
+    ithBoid.position += velocity * deltaTime;
+    ithBoid.setVelocity(velocity);
 
     // Copy back, there is no references in HLSL
     boidData[i] = ithBoid;

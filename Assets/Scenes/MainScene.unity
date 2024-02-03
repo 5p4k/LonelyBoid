@@ -244,6 +244,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 724a3ee65ad83bea094c7914acac2f1d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  flocks:
+  - {fileID: 1515431702}
   computeShader: {fileID: 7200000, guid: f802b9696f7775dd191cd73a03762650, type: 3}
 --- !u!4 &712895567
 Transform:
@@ -290,12 +292,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   prefab: {fileID: 4362410263615984501, guid: 83da7418e96d479eeb897eccfd91c951, type: 3}
-  spawnFrequency: 1
-  spawnRadius: 8
+  spawnFrequency: 3
+  spawnRadius: 1
   maxCount: 40
   separationWeight: 1
-  alignmentWeight: 1
-  cohesionWeight: 1
+  alignmentWeight: 3
+  cohesionWeight: 10
+  maxAcceleration: 2
+  minSpeed: 0.1
+  maxSpeed: 3
+  viewRadius: 2
+  viewAngleTau: 0.5
+  avoidRadius: 0.2
+  avoidAngleTau: 0.5
   boids: []
 --- !u!4 &1515431703
 Transform:

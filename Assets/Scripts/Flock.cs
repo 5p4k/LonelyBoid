@@ -13,22 +13,26 @@ public class Flock : MonoBehaviour
 
     [Header("Behaviour")]
     public float separationWeight = 1.0f;
-    public float separationPower = 2.0f;
     public float alignmentWeight = 1.0f;
     public float cohesionWeight = 1.0f;
 
+    [Header("Dynamics")]
+    public float maxAcceleration = 10.0f;
+    public float minSpeed = 0.1f;
+    public float maxSpeed = 10.0f;
+
     [Header("Perception")]
     public float viewRadius = 1.0f;
-    public float viewAngleDegrees = 180.0f;
+    public float viewAngleTau = 0.5f;
     public float avoidRadius = 0.2f;
-    public float avoidAngleDegrees = 180.0f;
+    public float avoidAngleTau = 0.5f;
     
     float _lastSpawn = 0.0f;
 
     [HideInInspector]
     public List<Boid> boids = new List<Boid>();
 
-    public float spawnPeriod {
+    float spawnPeriod {
         get {
             return 1.0f / spawnFrequency;
         }
@@ -44,6 +48,7 @@ public class Flock : MonoBehaviour
             Vector3 deltaPos = spawnRadius * Random.insideUnitCircle.normalized;
             boid.transform.position = transform.position + deltaPos;
             boid.transform.up = Random.insideUnitCircle;
+            boid.speed = minSpeed + Random.value * (maxSpeed - minSpeed);
 
             boids.Add(boid);
         }
