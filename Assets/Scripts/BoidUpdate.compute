@@ -104,15 +104,17 @@ float2 ComputeVelocityChange(float2 direction, float speed, float2 acceleration,
             // We calculate the t that yields the intersection.
             const float aCrossMaxAngleDir = cross2(acceleration, maxAngleDir);
 
-            // If this is zero, there is no intersection. In particular, we will not be exceeding the max angle.
-            if (aCrossMaxAngleDir != 0.f) {
+            // If it's zero or has the opposite sign as rotSin, there is no intersection for a t > 0.
+            // In particular, we will not be exceeding the max angle.
+            if (abs(aCrossMaxAngleDir) > 1.e-5f && sign(aCrossMaxAngleDir) != sign(rotSin)) {
                 // Scaling acceleration by this factor will keep the angular rotation under check
-                const float scaling = cross2(maxAngleDir, direction * speed) / aCrossMaxAngleDir;
+                // I swear this is correct
+                const float scaling = -rotSin * speed / aCrossMaxAngleDir;
                 accelerationFactor = min(accelerationFactor, scaling);
             }
         }
     }
-    
+
     return acceleration * accelerationFactor;
 }
 
