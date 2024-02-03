@@ -5,7 +5,6 @@ using UnityEditor;
 
 public class Boid : MonoBehaviour
 {
-    [HideInInspector]
     public float speed = 0.0f;
 
     [HideInInspector]
