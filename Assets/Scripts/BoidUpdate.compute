@@ -48,9 +48,9 @@ float2 bounded(float2 v, float minMagnitude, float maxMagnitude) {
     const float inMagnitude = length(v);
     const float outMagnitude = clamp(inMagnitude, minMagnitude, maxMagnitude);
     if (inMagnitude > 0.f) {
-        return v * (outMagnitude / inMagnitude);
+        v *= outMagnitude / inMagnitude;
     }
-    return float2(0.f, 0.f);
+    return v;
 }
 
 
