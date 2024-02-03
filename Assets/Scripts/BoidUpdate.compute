@@ -44,11 +44,19 @@ float deltaTime;
 
 static const float PI = 3.141592653589793f;
 
-float2 bounded(float2 v, float minMagnitude, float maxMagnitude) {
+float2 clamp_magnitude(float2 v, float minMagnitude, float maxMagnitude) {
     const float inMagnitude = length(v);
     const float outMagnitude = clamp(inMagnitude, minMagnitude, maxMagnitude);
     if (inMagnitude > 0.f) {
         v *= outMagnitude / inMagnitude;
+    }
+    return v;
+}
+
+float2 safe_normalize(float2 v) {
+    const float magnitude = length(v);
+    if (magnitude > 0.f) {
+        v /= magnitude;
     }
     return v;
 }
@@ -115,19 +123,19 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
     }
 
     // Compute each drive
-    const float2 alignmentDrive = normalize(matesMeanVelocity - ithBoid.velocity());
-    const float2 separationDrive = normalize(avoidPotential);
-    const float2 cohesionDrive = normalize(matesMeanPosition - ithBoid.position);
+    const float2 alignmentDrive = safe_normalize(matesMeanVelocity - ithBoid.velocity());
+    const float2 separationDrive = safe_normalize(avoidPotential);
+    const float2 cohesionDrive = safe_normalize(matesMeanPosition - ithBoid.position);
 
     // Compute the weighted acceleration from the drive
-    const float2 acceleration = bounded(
+    const float2 acceleration = clamp_magnitude(
         flock.separationWeight * separationDrive
             + flock.alignmentWeight * alignmentDrive
             + flock.cohesionWeight * cohesionDrive,
         0.f, flock.maxAcceleration);
 
     // Compute the velocity update
-    const float2 velocity = bounded(
+    const float2 velocity = clamp_magnitude(
         ithBoid.velocity() + deltaTime * acceleration,
         flock.minSpeed, flock.maxSpeed);
 
