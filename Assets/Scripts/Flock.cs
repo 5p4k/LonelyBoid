@@ -46,7 +46,7 @@ public class Flock : MonoBehaviour
             Boid boid = Instantiate(prefab);
             boid.flock = this;
 
-            // Randomize position and orientatino
+            // Randomize position and orientation
             Vector3 deltaPos = spawnRadius * Random.insideUnitCircle.normalized;
             boid.transform.position = transform.position + deltaPos;
             boid.transform.up = Random.insideUnitCircle;
