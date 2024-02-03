@@ -32,6 +32,7 @@ struct FlockData {
     float maxAcceleration;
     float minSpeed;
     float maxSpeed;
+    float maxAngularSpeedTau;
 };
 
 RWStructuredBuffer<BoidData> boidData;
@@ -44,6 +45,7 @@ float deltaTime;
 
 static const float PI = 3.141592653589793f;
 
+
 float2 clamp_magnitude(float2 v, float minMagnitude, float maxMagnitude) {
     const float inMagnitude = length(v);
     const float outMagnitude = clamp(inMagnitude, minMagnitude, maxMagnitude);
@@ -53,12 +55,65 @@ float2 clamp_magnitude(float2 v, float minMagnitude, float maxMagnitude) {
     return v;
 }
 
+
 float2 safe_normalize(float2 v) {
     const float magnitude = length(v);
     if (magnitude > 0.f) {
         v /= magnitude;
     }
     return v;
+}
+
+float cross2(float2 v, float2 w) {
+    return v.x * w.y - v.y * w.x;
+}
+
+
+float2 ComputeVelocityChange(float2 direction, float speed, float2 acceleration,
+                             float maxAcceleration, float maxAngleRad) {
+    const float accelerationMagnitude = length(acceleration);
+    float accelerationFactor = deltaTime;
+
+    if (accelerationMagnitude >= 1.e-5f) {
+        /*
+         * Theoretically, the velocity change is given by v += clamp_magnitude(a, 0, maxAcceleration) * deltaT.
+         * This means that the candidates for the velocity change are
+         *  - a * deltaT * maxAcceleration / |a|
+         *  - a * deltaT
+         * whichever is smaller.
+         */
+        accelerationFactor = min(accelerationFactor, deltaTime * maxAcceleration / accelerationMagnitude);
+
+        // Do we need to reduce the acceleration even further to clamp down on angular speed?
+        if (maxAngleRad < PI) {
+            // Rotate the current direction by maxAngleRad to obtain the direction that marks the rotation limit
+            const float rotCos = cos(maxAngleRad);
+            float rotSin = sin(maxAngleRad);
+
+            // Does the acceleration make us rotate clockwise or counterclockwise?
+            if (cross2(direction, acceleration) < 0.f) {
+                rotSin *= -1.f;
+            }
+
+            const float2 maxAngleDir = float2(
+                direction.x * rotCos - direction.y * rotSin,
+                direction.x * rotSin + direction.y * rotCos
+            );
+
+            // Intersect velocity + t * acceleration with the line through maxAngleDir.
+            // We calculate the t that yields the intersection.
+            const float aCrossMaxAngleDir = cross2(acceleration, maxAngleDir);
+
+            // If this is zero, there is no intersection. In particular, we will not be exceeding the max angle.
+            if (aCrossMaxAngleDir != 0.f) {
+                // Scaling acceleration by this factor will keep the angular rotation under check
+                const float scaling = cross2(maxAngleDir, direction * speed) / aCrossMaxAngleDir;
+                accelerationFactor = min(accelerationFactor, scaling);
+            }
+        }
+    }
+    
+    return acceleration * accelerationFactor;
 }
 
 
@@ -128,21 +183,22 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
     const float2 cohesionDrive = safe_normalize(matesMeanPosition - ithBoid.position);
 
     // Compute the weighted acceleration from the drive
-    const float2 acceleration = clamp_magnitude(
-        flock.separationWeight * separationDrive
-            + flock.alignmentWeight * alignmentDrive
-            + flock.cohesionWeight * cohesionDrive,
-        0.f, flock.maxAcceleration);
+    const float2 acceleration = flock.separationWeight * separationDrive
+                              + flock.alignmentWeight * alignmentDrive
+                              + flock.cohesionWeight * cohesionDrive;
+
+    const float2 deltaVelocity = ComputeVelocityChange(
+        ithBoid.direction, ithBoid.speed, acceleration,
+        flock.maxAcceleration, flock.maxAngularSpeedTau * deltaTime * 2.f * PI
+    );
 
     // Compute the velocity update
-    const float2 velocity = clamp_magnitude(
-        ithBoid.velocity() + deltaTime * acceleration,
-        flock.minSpeed, flock.maxSpeed);
-
-    // Compute the update
-    ithBoid.position += velocity * deltaTime;
+    const float2 velocity = clamp_magnitude(ithBoid.velocity() + deltaVelocity, flock.minSpeed, flock.maxSpeed);
     ithBoid.setVelocity(velocity);
 
+    // Compute the position update
+    ithBoid.position += velocity * deltaTime;
+    
     // Copy back, there is no references in HLSL
     boidData[i] = ithBoid;
 }

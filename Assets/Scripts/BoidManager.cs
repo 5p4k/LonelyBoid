@@ -26,6 +26,7 @@ public class BoidManager : MonoBehaviour
         public float maxAcceleration;
         public float minSpeed;
         public float maxSpeed;
+        public float maxAngularSpeedTau;
     }
 
     public List<Flock> flocks = new List<Flock>();
@@ -87,6 +88,7 @@ public class BoidManager : MonoBehaviour
             _flockData[flockIndex].maxAcceleration = flock.maxAcceleration;
             _flockData[flockIndex].minSpeed = flock.minSpeed;
             _flockData[flockIndex].maxSpeed = flock.maxSpeed;
+            _flockData[flockIndex].maxAngularSpeedTau = flock.maxAngularSpeedTau;
             ++flockIndex;
         }
         boidCount = boidIndex;

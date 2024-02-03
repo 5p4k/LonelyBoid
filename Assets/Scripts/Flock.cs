@@ -20,6 +20,7 @@ public class Flock : MonoBehaviour
     public float maxAcceleration = 10.0f;
     public float minSpeed = 0.1f;
     public float maxSpeed = 10.0f;
+    public float maxAngularSpeedTau = 1.0f;
 
     [Header("Perception")]
     public float viewRadius = 1.0f;
