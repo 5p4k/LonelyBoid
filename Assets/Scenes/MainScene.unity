@@ -293,18 +293,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   prefab: {fileID: 4362410263615984501, guid: 83da7418e96d479eeb897eccfd91c951, type: 3}
   spawnFrequency: 3
-  spawnRadius: 1
+  spawnRadius: 5
   maxCount: 40
-  separationWeight: 1
+  separationWeight: 2
   alignmentWeight: 3
-  cohesionWeight: 10
-  maxAcceleration: 2
-  minSpeed: 0.1
-  maxSpeed: 3
-  viewRadius: 2
+  cohesionWeight: 2
+  maxAcceleration: 5
+  minSpeed: 1
+  maxSpeed: 10
+  viewRadius: 5
   viewAngleTau: 0.5
-  avoidRadius: 0.2
-  avoidAngleTau: 0.5
+  avoidRadius: 2
+  avoidAngleTau: 0.8
   boids: []
 --- !u!4 &1515431703
 Transform:
