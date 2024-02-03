@@ -44,6 +44,7 @@ public class Flock : MonoBehaviour
         if (Time.time - _lastSpawn > spawnPeriod && boids.Count < maxCount) {
             _lastSpawn = Time.time;
             Boid boid = Instantiate(prefab);
+            boid.flock = this;
 
             // Randomize position and orientatino
             Vector3 deltaPos = spawnRadius * Random.insideUnitCircle.normalized;
@@ -59,10 +60,12 @@ public class Flock : MonoBehaviour
 
 public class FlockGizmoDrawer 
 {
-    [DrawGizmo(GizmoType.Selected | GizmoType.Active)]
-    static void DrawGizmoForFlock(Flock spawner, GizmoType gizmoType)
+    [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy)]
+    static void DrawGizmoForFlock(Flock flock, GizmoType gizmoType)
     {
-        UnityEditor.Handles.color = Color.yellow;
-        UnityEditor.Handles.DrawWireDisc(spawner.transform.position, Vector3.back, spawner.spawnRadius);
+        if ((gizmoType & GizmoType.InSelectionHierarchy) != 0) {
+            UnityEditor.Handles.color = Color.yellow;
+        }
+        UnityEditor.Handles.DrawWireDisc(flock.transform.position, Vector3.back, flock.spawnRadius);
     }
 }
