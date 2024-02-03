@@ -1,0 +1,83 @@
+#pragma kernel CSMain
+
+struct BoidData {
+    uint flockIndex;
+    float2 position;
+    float2 direction;
+    float speed;
+
+    float2 matesMeanPosition;
+    float2 matesMeanDirection;
+    float2 avoidDirection;
+};
+
+struct FlockData {
+    float viewRadius;
+    float viewAngleRadians;
+    float avoidRadius;
+    float avoidAngleRadians;
+    float separationPower;
+};
+
+RWStructuredBuffer<BoidData> boidData;
+int boidCount;
+
+RWStructuredBuffer<FlockData> flockData;
+int flockCount;
+
+
+[numthreads(1024, 1, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    const int i = id.x;
+    BoidData ithBoid = boidData[i];
+
+    // Reset the properties
+    uint matesCount = 0;
+    ithBoid.matesMeanPosition = float2(0, 0);
+    ithBoid.matesMeanDirection = float2(0, 0);
+    ithBoid.avoidDirection = float2(0, 0);
+
+    const FlockData flock = flockData[ithBoid.flockIndex];
+    const float viewAngleCos = cos(flock.viewAngleRadians * 0.5);
+    const float avoidAngleCos = cos(flock.avoidAngleRadians * 0.5);
+
+
+    for (int j = 0; j < boidCount; ++j) {
+        if (i == j) {
+            continue;
+        }
+        // Foreach other boid
+        BoidData jthBoid = boidData[j];
+
+        const float2 ijOffset = jthBoid.position - ithBoid.position;
+        const float ijDistance = sqrt(ijOffset.x * ijOffset.x + ijOffset.y * ijOffset.y);
+        const float2 ijDirection = ijOffset / ijDistance;
+
+        // The dot product of two normal vector is the cosine of the angle between them
+        const float angleCos = ijDirection.x * ithBoid.direction.x + ijDirection.y * ithBoid.direction.y;
+
+        if (jthBoid.flockIndex == ithBoid.flockIndex) {
+            // Same flock, is it in view?
+            if (angleCos < viewAngleCos && ijDistance <= flock.viewRadius) {
+                // Boids in range and in view that belong to the same flock contribute
+                ++matesCount;
+                ithBoid.matesMeanPosition += jthBoid.position;
+                ithBoid.matesMeanDirection += jthBoid.direction;
+            }
+        }
+
+        // Is in perception for avoidance?
+        if (angleCos < avoidAngleCos && ijDistance <= flock.avoidRadius) {
+            // Other boids only contribute to avoidance
+            ithBoid.avoidDirection -= ijOffset / pow(ijDistance, flock.separationPower);
+        }
+    }
+
+    if (matesCount > 0) {
+        ithBoid.matesMeanPosition /= matesCount;
+        ithBoid.matesMeanDirection /= matesCount;
+    }
+
+    // Copy back, there is no references in HLSL
+    boidData[i] = ithBoid;
+}
