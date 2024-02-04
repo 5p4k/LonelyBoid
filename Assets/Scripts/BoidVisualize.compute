@@ -10,6 +10,7 @@ int flockIndex;
 
 float2 texturePosition;
 float2 texturePixelSize;
+float maxValue;
 
 RWTexture2D<float4> textureOutput;
 
@@ -42,28 +43,13 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
                               + flock.alignmentWeight * alignmentDrive
                               + flock.cohesionWeight * cohesionDrive
                               + flock.survivalWeight * survivalDrive;
+    const float accelerationMagnitude = length(acceleration);
 
 
-    // Decompose this into three equidistant components at 120 degrees, mapped in 0...3
-    const float angle = 1.5f + 3.f * atan2(acceleration.y, acceleration.x) / (2.f * PI);
+    float4 color;
+    color.xy = saturate(float2(0.5f, 0.5f) + 0.5f * acceleration / maxValue);
+    color.z = 0.f;
+    color.w = accelerationMagnitude > maxValue ? 0.f : 1.f;
 
-    // Where are we in the color wheel?
-    const float blendRG = saturate(angle);
-    const float blendGB = saturate(angle - 1.f);
-    const float blendBR = saturate(angle - 2.f);
-
-    // Sum all pairs of factors that yield one color (one of the two will be zero)
-    float4 factors = float4(
-        blendBR + (1.f - blendRG),
-        blendRG + (1.f - blendGB),
-        blendGB + (1.f - blendBR),
-        0.f
-    );
-
-    // Add the magnitude of the acceleration into the intensity
-    factors *= length(acceleration);
-    factors.w = 1.f;
-
-    // Save the color
-    textureOutput[id.xy] = factors;
+    textureOutput[id.xy] = color;
 }

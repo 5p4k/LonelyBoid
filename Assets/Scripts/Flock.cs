@@ -33,7 +33,11 @@ public class Flock : MonoBehaviour
     [HideInInspector]
     public List<Boid> boids = new List<Boid>();
 
+    [HideInInspector]
     public RenderTexture visualization;
+
+    [Header("Debug")]
+    public float visualizationMaxValue = 10.0f;
 
     float _lastSpawn = 0.0f;
 

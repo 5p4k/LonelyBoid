@@ -183,6 +183,8 @@ public class BoidManager : MonoBehaviour
         visualizeShader.SetFloats("texturePosition", texPos);
         visualizeShader.SetFloats("texturePixelSize", texPxSz);
 
+        visualizeShader.SetFloat("maxValue", flock.visualizationMaxValue);
+
         visualizeShader.SetTexture(0, "textureOutput", texture);
         visualizeShader.Dispatch(0, texture.width, texture.height, 1);
     }
