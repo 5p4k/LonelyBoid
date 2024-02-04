@@ -14,29 +14,49 @@ public class Boid : MonoBehaviour
 
 public class BoidGizmoDrawer 
 {
-    [DrawGizmo(GizmoType.Selected | GizmoType.Active)]
-    static void DrawGizmoForBoid(Boid boid, GizmoType gizmoType)
-    {
-        if (boid.flock != null) {
-            // Draw the region where the boid can see
-            Color color = UnityEditor.Handles.color;
-            color.a = 0.1f;
-            UnityEditor.Handles.color = color;
-
-            UnityEditor.Handles.DrawSolidArc(boid.transform.position, Vector3.back,
-                boid.transform.up, +boid.flock.viewAngleTau * 180.0f, boid.flock.viewRadius);
-            UnityEditor.Handles.DrawSolidArc(boid.transform.position, Vector3.back,
-                boid.transform.up, -boid.flock.viewAngleTau * 180.0f, boid.flock.viewRadius);
-
-            UnityEditor.Handles.color = new Color(1, 0, 0, 0.1f);
-
-            // Draw the region where the boid can avoid
-            UnityEditor.Handles.DrawSolidArc(boid.transform.position, Vector3.back,
-                boid.transform.up, +boid.flock.avoidAngleTau * 180.0f, boid.flock.avoidRadius);
-            UnityEditor.Handles.DrawSolidArc(boid.transform.position, Vector3.back,
-                boid.transform.up, -boid.flock.avoidAngleTau * 180.0f, boid.flock.avoidRadius);
+    static void DrawSector(Transform transform, float radius, float angleTau, bool solid) {
+        float angleDeg = angleTau * 360.0f;
+        Vector3 start = Quaternion.AngleAxis(-0.5f * angleDeg, Vector3.back) * transform.up;
+        if (solid) {
+            UnityEditor.Handles.DrawSolidArc(transform.position, Vector3.back, start, angleDeg, radius);
+        } else {
+            UnityEditor.Handles.DrawWireArc(transform.position, Vector3.back, start, angleDeg, radius);
+            UnityEditor.Handles.DrawLine(transform.position, transform.position + start * radius);
+            Vector3 end = Quaternion.AngleAxis(angleDeg, Vector3.back) * start;
+            UnityEditor.Handles.DrawLine(transform.position, transform.position + end * radius);
         }
-        
+    }
+
+    [DrawGizmo(GizmoType.Active)]
+    public static void DrawGizmoForBoid(Boid boid, GizmoType gizmoType) {
+        if (boid.flock == null) {
+            return;
+        }
+        bool isActive = (gizmoType & GizmoType.Active) != 0;
+
+        // Draw the region where the boid can see
+        Color color = UnityEditor.Handles.color;
+        color.a = isActive ? 0.1f : 0.5f;
+
+        using (new Handles.DrawingScope(color)) {
+            DrawSector(boid.transform, boid.flock.viewRadius, boid.flock.viewAngleTau, isActive);
+        }
+
+        color.r = 1; color.g = 0; color.b = 0;
+
+        // Draw the region where the boid can avoid
+        using (new Handles.DrawingScope(color)) {
+            DrawSector(boid.transform, boid.flock.avoidRadius, boid.flock.avoidAngleTau, isActive);
+        }
+
+        if (isActive) {
+            FlockGizmoDrawer.DrawGizmoForFlock(boid.flock, GizmoType.InSelectionHierarchy);
+            foreach (Boid otherBoid in boid.flock.boids) {
+                if (boid != otherBoid) {
+                    DrawGizmoForBoid(otherBoid, GizmoType.InSelectionHierarchy);
+                }
+            }
+        }
     }
 }
 

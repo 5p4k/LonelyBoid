@@ -138,11 +138,19 @@ public class BoidManager : MonoBehaviour
             if (flock == null) {
                 continue;
             }
+            List<Boid> killList = new List<Boid>();
             foreach (Boid boid in flock.boids) {
-                boid.transform.position = _boidData[boidIndex].position;
-                boid.transform.up = _boidData[boidIndex].direction;
-                boid.speed = _boidData[boidIndex].speed;
+                if (Vector3.Distance(_boidData[boidIndex].position, flock.transform.position) > flock.killRadius) {
+                    killList.Add(boid);
+                } else {
+                    boid.transform.position = _boidData[boidIndex].position;
+                    boid.transform.up = _boidData[boidIndex].direction;
+                    boid.speed = _boidData[boidIndex].speed;
+                }
                 ++boidIndex;
+            }
+            foreach (Boid boid in killList) {
+                flock.Kill(boid);
             }
         }
     }
