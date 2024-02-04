@@ -177,11 +177,11 @@ public class BoidManager : MonoBehaviour
         visualizeShader.SetInt("boidCount", (int)boidCount);
         visualizeShader.SetInt("flockIndex", flockIndex);
 
-        float[] texPos = new float[2] {window.xMin, window.yMin};
-        float[] texPxSz = new float[2] {window.width / (float)texture.width, window.height / (float)texture.height};
+        float[] texWin = new float[4] {window.xMin, window.yMin, window.width, window.height};
+        int[] texSz = new int[2] {texture.width, texture.height};
 
-        visualizeShader.SetFloats("texturePosition", texPos);
-        visualizeShader.SetFloats("texturePixelSize", texPxSz);
+        visualizeShader.SetFloats("textureWindow", texWin);
+        visualizeShader.SetInts("textureSize", texSz);
 
         visualizeShader.SetFloat("maxValue", flock.visualizationMaxValue);
 

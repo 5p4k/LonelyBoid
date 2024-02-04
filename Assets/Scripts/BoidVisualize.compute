@@ -8,20 +8,37 @@ int boidCount;
 RWStructuredBuffer<FlockData> flockData;
 int flockIndex;
 
-float2 texturePosition;
-float2 texturePixelSize;
+float4 textureWindow;
+int2 textureSize;
 float maxValue;
 
 RWTexture2D<float4> textureOutput;
 
+/* Unused currently.
+
+float3 hsl2rgb(float3 hsl) {
+    const float3 rgb = saturate(float3(
+        abs(hsl.x * 6.f - 3.f) - 1.f,
+        2.f - abs(hsl.x * 6.f - 2.f),
+        2.f - abs(hsl.x * 6.f - 4.f)
+    ));
+    const float c = (1.f - abs(2.f * hsl.z - 1.f)) * hsl.y;
+    return (rgb - 0.5f) * c + hsl.z;
+}
+*/
+
+
 [numthreads(8,8,1)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
+    const float2 pixelSize = float2(textureWindow.z / float(textureSize.x), textureWindow.w / float(textureSize.y));
+    const float2 position = 0.5f * pixelSize + textureWindow.xy + pixelSize * float2(id.x, textureSize.y - id.y);
+
     FlockData flock = flockData[flockIndex];
 
     // A dummy boid that is used to derive the drives
     BoidData dummy;
     dummy.flockIndex = flockIndex;
-    dummy.position = texturePosition + texturePixelSize * id.xy + 0.5 * texturePixelSize;
+    dummy.position = position;
     dummy.direction = float2(0, 1);
     dummy.speed = 1.f;
 
@@ -43,13 +60,21 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
                               + flock.alignmentWeight * alignmentDrive
                               + flock.cohesionWeight * cohesionDrive
                               + flock.survivalWeight * survivalDrive;
-    const float accelerationMagnitude = length(acceleration);
 
+    // Convert to color
+    const float2 reducedAccel = clamp(acceleration / maxValue, -1.f, 1.f);
+
+    const float2 rgMix = saturate(+reducedAccel);
+    const float2 mcMix = saturate(-reducedAccel);
+
+    const float3 colR = float3(1, 0, 0);
+    const float3 colG = float3(0, 1, 0);
+    const float3 colM = float3(1, 0, 1);
+    const float3 colC = float3(0, 1, 1);
 
     float4 color;
-    color.xy = saturate(float2(0.5f, 0.5f) + 0.5f * acceleration / maxValue);
-    color.z = 0.f;
-    color.w = accelerationMagnitude > maxValue ? 0.f : 1.f;
+    color.xyz = colR * rgMix.x + colG * rgMix.y + colM * mcMix.x + colC * mcMix.y;
+    color.w = length(acceleration) > maxValue ? 0.f : 1.f;
 
     textureOutput[id.xy] = color;
 }
