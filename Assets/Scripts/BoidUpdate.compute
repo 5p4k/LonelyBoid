@@ -5,7 +5,7 @@
 RWStructuredBuffer<BoidData> boidData;
 int boidCount;
 
-RWStructuredBuffer<FlockData> flockData;
+StructuredBuffer<FlockData> flockData;
 int flockCount;
 
 float deltaTime;

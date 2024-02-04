@@ -1,0 +1,69 @@
+#pragma kernel CSMain
+
+#include "BoidsLibrary.cginc"
+
+RWStructuredBuffer<BoidData> boidData;
+int boidCount;
+
+RWStructuredBuffer<FlockData> flockData;
+int flockIndex;
+
+float2 texturePosition;
+float2 texturePixelSize;
+
+RWTexture2D<float4> textureOutput;
+
+[numthreads(8,8,1)]
+void CSMain(uint3 id : SV_DispatchThreadID) {
+    FlockData flock = flockData[flockIndex];
+
+    // A dummy boid that is used to derive the drives
+    BoidData dummy;
+    dummy.flockIndex = flockIndex;
+    dummy.position = texturePosition + texturePixelSize * id.xy + 0.5 * texturePixelSize;
+    dummy.direction = float2(0, 1);
+    dummy.speed = 1.f;
+
+    // Compute neighborhood drives: 
+    float2 cohesionDrive, separationDrive, alignmentDrive;
+
+    NeighborhoodDrivesCalculator driveCalc;
+    driveCalc.Initialize(dummy, flock);
+    for (int i = 0; i < boidCount; ++i) {
+        driveCalc.Update(boidData[i]);
+    }
+    driveCalc.Compute(cohesionDrive, separationDrive, alignmentDrive);
+
+    // Compute force field drives:
+    float2 survivalDrive = ComputeSurvivalDrive(dummy, flock);
+
+    // Compute the weighted acceleration from the drive
+    const float2 acceleration = flock.separationWeight * separationDrive
+                              + flock.alignmentWeight * alignmentDrive
+                              + flock.cohesionWeight * cohesionDrive
+                              + flock.survivalWeight * survivalDrive;
+
+
+    // Decompose this into three equidistant components at 120 degrees, mapped in 0...3
+    const float angle = 1.5f + 3.f * atan2(acceleration.y, acceleration.x) / (2.f * PI);
+
+    // Where are we in the color wheel?
+    const float blendRG = saturate(angle);
+    const float blendGB = saturate(angle - 1.f);
+    const float blendBR = saturate(angle - 2.f);
+
+    // Sum all pairs of factors that yield one color (one of the two will be zero)
+    float4 factors = float4(
+        blendBR + (1.f - blendRG),
+        blendRG + (1.f - blendGB),
+        blendGB + (1.f - blendBR),
+        0.f
+    );
+
+    // Add the magnitude of the acceleration into the intensity
+    factors *= length(acceleration);
+    factors.w = 1.f;
+
+    // Save the color
+    textureOutput[id.xy] = factors;
+}

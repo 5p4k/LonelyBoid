@@ -30,10 +30,12 @@ public class Flock : MonoBehaviour
     public float avoidRadius = 2f;
     public float avoidAngleTau = 0.8f;
     
-    float _lastSpawn = 0.0f;
-
     [HideInInspector]
     public List<Boid> boids = new List<Boid>();
+
+    public RenderTexture visualization;
+
+    float _lastSpawn = 0.0f;
 
     float spawnPeriod {
         get {
@@ -94,6 +96,53 @@ public class Flock : MonoBehaviour
             Spawn();
         }
     }
+
+    public Rect visualizationRect {
+        get {
+            float radius = Mathf.Max(spawnRadius, killRadius);
+            return new Rect(
+                transform.position.x - radius, transform.position.y - radius,
+                2 * radius, 2 * radius
+            );
+        }
+    }
+
+    public void UpdateVisualization() {
+        BoidManager ownManager = null;
+        var managers = Object.FindObjectsOfType(typeof(BoidManager));
+        foreach (BoidManager manager in managers) {
+            if (manager.flocks.Contains(this)) {
+                ownManager = manager;
+                break;
+            }
+        }
+
+        if (ownManager == null) {
+            Debug.LogWarning("Could not find manager for flock.");
+            return;
+        }
+
+        if (visualization == null) {
+            visualization = new RenderTexture(1024, 1024, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            visualization.enableRandomWrite = true;
+            visualization.Create();
+        }
+
+        
+        ownManager.RenderFlockField(this, visualizationRect, visualization);
+    }
+
+    public void ClearVisualization() {
+        if (visualization != null) {
+            visualization.Release();
+            visualization = null;
+        }
+
+    }
+
+    void OnDestroy() {
+        ClearVisualization();
+    }
 }
 
 
@@ -103,6 +152,10 @@ public class FlockEditor : Editor {
 
     [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy)]
     static void DrawGizmo(Flock flock, GizmoType gizmoType) {
+        if (flock.visualization != null) {
+            Gizmos.DrawGUITexture(flock.visualizationRect, flock.visualization);
+        }
+
         bool active = (gizmoType & GizmoType.Active) != 0;
 
         for (uint i = 0; i < 36; ++i) {
@@ -137,6 +190,20 @@ public class FlockEditor : Editor {
 
         using (new Handles.DrawingScope(Color.red)) {
             HandleRadius(flock, ref flock.killRadius, "Change kill radius");
+        }
+    }
+
+    public override void OnInspectorGUI() {
+        Flock flock = target as Flock;
+
+        DrawDefaultInspector();
+
+        if (GUILayout.Button("Update Visualization")) {
+            flock.UpdateVisualization();
+        }
+
+        if (GUILayout.Button("Clear Visualization")) {
+            flock.ClearVisualization();
         }
     }
 }

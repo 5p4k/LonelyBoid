@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq;
+using UnityEditor;
 
 public class BoidManager : MonoBehaviour
 {
@@ -37,7 +37,8 @@ public class BoidManager : MonoBehaviour
 
     public List<Flock> flocks = new List<Flock>();
 
-    public ComputeShader computeShader;
+    public ComputeShader updateShader;
+    public ComputeShader visualizeShader;
 
     BoidData[] _boidData = null;
     ComputeBuffer _boidDataBuffer = null;
@@ -48,7 +49,9 @@ public class BoidManager : MonoBehaviour
     uint GetMaxBoidsCount() {
         uint retval = 0;
         foreach (Flock flock in flocks) {
-            retval += flock.maxCount;
+            if (flock != null) {
+                retval += flock.maxCount;
+            }
         }
         return retval;
     }
@@ -77,31 +80,30 @@ public class BoidManager : MonoBehaviour
         uint boidIndex = 0;
         uint flockIndex = 0;
         foreach (Flock flock in flocks) {
-            if (flock == null) {
-                continue;
+            if (flock != null) {
+                foreach (Boid boid in flock.boids) {
+                    _boidData[boidIndex].flockIndex = flockIndex;
+                    _boidData[boidIndex].position = boid.transform.position;
+                    _boidData[boidIndex].direction = boid.transform.up;
+                    _boidData[boidIndex].speed = boid.speed;
+                    ++boidIndex;
+                }
+                _flockData[flockIndex].viewRadius = flock.viewRadius;
+                _flockData[flockIndex].viewAngleTau = flock.viewAngleTau;
+                _flockData[flockIndex].avoidRadius = flock.avoidRadius;
+                _flockData[flockIndex].avoidAngleTau = flock.avoidAngleTau;
+                _flockData[flockIndex].separationWeight = flock.separationWeight;
+                _flockData[flockIndex].alignmentWeight = flock.alignmentWeight;
+                _flockData[flockIndex].cohesionWeight = flock.cohesionWeight;
+                _flockData[flockIndex].survivalWeight = flock.survivalWeight;
+                _flockData[flockIndex].maxAcceleration = flock.maxAcceleration;
+                _flockData[flockIndex].minSpeed = flock.minSpeed;
+                _flockData[flockIndex].maxSpeed = flock.maxSpeed;
+                _flockData[flockIndex].maxAngularSpeedTau = flock.maxAngularSpeedTau;
+                _flockData[flockIndex].center = flock.transform.position;
+                _flockData[flockIndex].spawnRadius = flock.spawnRadius;
+                _flockData[flockIndex].killRadius = flock.killRadius;
             }
-            foreach (Boid boid in flock.boids) {
-                _boidData[boidIndex].flockIndex = flockIndex;
-                _boidData[boidIndex].position = boid.transform.position;
-                _boidData[boidIndex].direction = boid.transform.up;
-                _boidData[boidIndex].speed = boid.speed;
-                ++boidIndex;
-            }
-            _flockData[flockIndex].viewRadius = flock.viewRadius;
-            _flockData[flockIndex].viewAngleTau = flock.viewAngleTau;
-            _flockData[flockIndex].avoidRadius = flock.avoidRadius;
-            _flockData[flockIndex].avoidAngleTau = flock.avoidAngleTau;
-            _flockData[flockIndex].separationWeight = flock.separationWeight;
-            _flockData[flockIndex].alignmentWeight = flock.alignmentWeight;
-            _flockData[flockIndex].cohesionWeight = flock.cohesionWeight;
-            _flockData[flockIndex].survivalWeight = flock.survivalWeight;
-            _flockData[flockIndex].maxAcceleration = flock.maxAcceleration;
-            _flockData[flockIndex].minSpeed = flock.minSpeed;
-            _flockData[flockIndex].maxSpeed = flock.maxSpeed;
-            _flockData[flockIndex].maxAngularSpeedTau = flock.maxAngularSpeedTau;
-            _flockData[flockIndex].center = flock.transform.position;
-            _flockData[flockIndex].spawnRadius = flock.spawnRadius;
-            _flockData[flockIndex].killRadius = flock.killRadius;
             ++flockIndex;
         }
         boidCount = boidIndex;
@@ -120,14 +122,14 @@ public class BoidManager : MonoBehaviour
         _boidDataBuffer.SetData(_boidData);
         _flockDataBuffer.SetData(_flockData);
 
-        computeShader.SetBuffer(0, "boidData", _boidDataBuffer);
-        computeShader.SetBuffer(0, "flockData", _flockDataBuffer);
+        updateShader.SetBuffer(0, "boidData", _boidDataBuffer);
+        updateShader.SetBuffer(0, "flockData", _flockDataBuffer);
 
-        computeShader.SetInt("boidCount", (int)boidCount);
-        computeShader.SetInt("flockCount", (int)flockCount);
-        computeShader.SetFloat("deltaTime", deltaTime);
+        updateShader.SetInt("boidCount", (int)boidCount);
+        updateShader.SetInt("flockCount", (int)flockCount);
+        updateShader.SetFloat("deltaTime", deltaTime);
 
-        computeShader.Dispatch(0, Mathf.Max(1, Mathf.CeilToInt(boidCount / 1024.0f)), 1, 1);
+        updateShader.Dispatch(0, Mathf.Max(1, Mathf.CeilToInt(boidCount / 1024.0f)), 1, 1);
 
         _boidDataBuffer.GetData(_boidData);
         _flockDataBuffer.GetData(_flockData);
@@ -144,17 +146,45 @@ public class BoidManager : MonoBehaviour
         // Apply update
         uint boidIndex = 0;
         foreach (Flock flock in flocks) {
-            if (flock == null) {
-                continue;
+            if (flock != null) {
+                foreach (Boid boid in flock.boids) {
+                    boid.transform.position = _boidData[boidIndex].position;
+                    boid.transform.up = _boidData[boidIndex].direction;
+                    boid.speed = _boidData[boidIndex].speed;
+                    ++boidIndex;
+                }
+                flock.KillStrayBoids();
             }
-            foreach (Boid boid in flock.boids) {
-                boid.transform.position = _boidData[boidIndex].position;
-                boid.transform.up = _boidData[boidIndex].direction;
-                boid.speed = _boidData[boidIndex].speed;
-                ++boidIndex;
-            }
-            flock.KillStrayBoids();
         }
+    }
+
+    public void RenderFlockField(Flock flock, Rect window, RenderTexture texture) {
+        int flockIndex = flocks.IndexOf(flock);
+        if (flockIndex < 0) {
+            return;
+        }
+
+        uint boidCount;
+        uint flockCount;
+        PopulateLocalBuffers(out boidCount, out flockCount);
+
+        _boidDataBuffer.SetData(_boidData);
+        _flockDataBuffer.SetData(_flockData);
+
+        visualizeShader.SetBuffer(0, "boidData", _boidDataBuffer);
+        visualizeShader.SetBuffer(0, "flockData", _flockDataBuffer);
+
+        visualizeShader.SetInt("boidCount", (int)boidCount);
+        visualizeShader.SetInt("flockIndex", flockIndex);
+
+        float[] texPos = new float[2] {window.xMin, window.yMin};
+        float[] texPxSz = new float[2] {window.width / (float)texture.width, window.height / (float)texture.height};
+
+        visualizeShader.SetFloats("texturePosition", texPos);
+        visualizeShader.SetFloats("texturePixelSize", texPxSz);
+
+        visualizeShader.SetTexture(0, "textureOutput", texture);
+        visualizeShader.Dispatch(0, texture.width, texture.height, 1);
     }
 
     void OnDestroy() {
