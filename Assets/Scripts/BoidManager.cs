@@ -23,11 +23,16 @@ public class BoidManager : MonoBehaviour
         public float separationWeight;
         public float alignmentWeight;
         public float cohesionWeight;
+        public float survivalWeight;
 
         public float maxAcceleration;
         public float minSpeed;
         public float maxSpeed;
         public float maxAngularSpeedTau;
+
+        public Vector2 center;
+        public float spawnRadius;
+        public float killRadius;
     }
 
     public List<Flock> flocks = new List<Flock>();
@@ -89,10 +94,14 @@ public class BoidManager : MonoBehaviour
             _flockData[flockIndex].separationWeight = flock.separationWeight;
             _flockData[flockIndex].alignmentWeight = flock.alignmentWeight;
             _flockData[flockIndex].cohesionWeight = flock.cohesionWeight;
+            _flockData[flockIndex].survivalWeight = flock.survivalWeight;
             _flockData[flockIndex].maxAcceleration = flock.maxAcceleration;
             _flockData[flockIndex].minSpeed = flock.minSpeed;
             _flockData[flockIndex].maxSpeed = flock.maxSpeed;
             _flockData[flockIndex].maxAngularSpeedTau = flock.maxAngularSpeedTau;
+            _flockData[flockIndex].center = flock.transform.position;
+            _flockData[flockIndex].spawnRadius = flock.spawnRadius;
+            _flockData[flockIndex].killRadius = flock.killRadius;
             ++flockIndex;
         }
         boidCount = boidIndex;

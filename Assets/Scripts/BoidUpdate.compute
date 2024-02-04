@@ -28,11 +28,16 @@ struct FlockData {
     float separationWeight;
     float alignmentWeight;
     float cohesionWeight;
+    float survivalWeight;
 
     float maxAcceleration;
     float minSpeed;
     float maxSpeed;
     float maxAngularSpeedTau;
+
+    float2 center;
+    float spawnRadius;
+    float killRadius;
 };
 
 RWStructuredBuffer<BoidData> boidData;
@@ -119,8 +124,9 @@ float2 ComputeVelocityChange(float2 direction, float speed, float2 acceleration,
 }
 
 
-[numthreads(1024, 1, 1)]
-void CSMain (uint3 id : SV_DispatchThreadID) {
+void ComputeNeighborhoodDrives(const BoidData boid, const FlockData flock,
+    out float2 cohesionDrive, out float2 separationDrive, out float2 alignmentDrive)
+{
     /*
      * Refer to [Lebar Bajec, Zimic, Mraz, 2007]: "The computational beauty of flocking: boids revisited"
      *
@@ -128,83 +134,102 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
      * computationally update the velocity. This one paper above instead explains exactly how the boids drives are to
      * be implemented into code.
      */
-    const int i = id.x;
-    BoidData ithBoid = boidData[i];
 
-    // Reset the properties
     uint matesCount = 0;
     float2 matesMeanPosition = float2(0, 0);
     float2 matesMeanVelocity = float2(0, 0);
     float2 avoidPotential = float2(0, 0);
 
-    const FlockData flock = flockData[ithBoid.flockIndex];
-
     // Note: 1 tau = 2 pi, thus here we are halving the angle
     const float viewAngleCos = cos(flock.viewAngleTau * PI);
     const float avoidAngleCos = cos(flock.avoidAngleTau * PI);
 
-    for (int j = 0; j < boidCount; ++j) {
-        if (i == j) {
-            continue;
-        }
-        // Foreach other boid
-        BoidData jthBoid = boidData[j];
+    for (int i = 0; i < boidCount; ++i) {
+        BoidData otherBoid = boidData[i];
 
-        const float2 ijOffset = jthBoid.position - ithBoid.position;
-        const float ijDistance = length(ijOffset);
-        const float2 ijDirection = ijOffset / ijDistance;
+        const float2 boidsOffset = otherBoid.position - boid.position;
+        const float boidsDistance = length(boidsOffset);
+        const float2 boidsDirection = boidsOffset / boidsDistance;
 
         // The dot product of two normal vector is the cosine of the angle between them
-        const float angleCos = dot(ijDirection, ithBoid.direction);
+        const float angleCos = dot(boidsDirection, boid.direction);
 
-        if (jthBoid.flockIndex == ithBoid.flockIndex) {
+        if (otherBoid.flockIndex == boid.flockIndex) {
             // Same flock, is it in view?
-            if (angleCos < viewAngleCos && ijDistance <= flock.viewRadius) {
+            if (angleCos < viewAngleCos && boidsDistance <= flock.viewRadius) {
                 // Boids in range and in view that belong to the same flock contribute
                 ++matesCount;
-                matesMeanPosition += jthBoid.position;
-                matesMeanVelocity += jthBoid.velocity();
+                matesMeanPosition += otherBoid.position;
+                matesMeanVelocity += otherBoid.velocity();
             }
         }
 
         // Is in perception for avoidance?
-        if (angleCos < avoidAngleCos && ijDistance > 0.f && ijDistance <= flock.avoidRadius) {
+        if (angleCos < avoidAngleCos && boidsDistance > 0.f && boidsDistance <= flock.avoidRadius) {
             // Other boids only contribute to avoidance in a measure equal to 1 / distance
-            avoidPotential -= ijDirection / ijDistance;
+            avoidPotential -= boidsDirection / boidsDistance;
         }
     }
 
-    if (matesCount > 0) {
-        matesMeanPosition /= matesCount;
-        matesMeanVelocity /= matesCount;
-    } else {
-        // The only mate known is ithBoid
-        matesMeanVelocity = ithBoid.velocity();
-        matesMeanPosition = ithBoid.position;
+    if (matesCount > 1) {
+        // Remove self from the equation and average
+        matesMeanVelocity = (matesMeanVelocity - boid.velocity()) / (matesCount - 1);
+        matesMeanPosition = (matesMeanPosition - boid.position) / (matesCount - 1);
     }
 
     // Compute each drive
-    const float2 separationDrive = safe_normalize(avoidPotential);
-    const float2 alignmentDrive = safe_normalize(matesMeanVelocity - ithBoid.velocity());
-    const float2 cohesionDrive = safe_normalize(matesMeanPosition - ithBoid.position);
+    separationDrive = safe_normalize(avoidPotential);
+    alignmentDrive = safe_normalize(matesMeanVelocity - boid.velocity());
+    cohesionDrive = safe_normalize(matesMeanPosition - boid.position);
+}
+
+float2 ComputeSurvivalDrive(const BoidData boid, const FlockData flock) {
+    float2 toCenterDir = flock.center - boid.position;
+    const float radius = length(toCenterDir);
+
+    if (radius > 1.e-5f) {
+        // If it's that close to the center, the drive will be anyways zero.
+        toCenterDir /= radius;
+    }
+
+    // Go quadratically from 0 at spawnRadius to 1 at killRadius
+    const float magnitude = pow(saturate((radius - flock.spawnRadius) / (flock.killRadius - flock.spawnRadius)), 2.f);
+
+    return toCenterDir * magnitude;
+}
+
+
+[numthreads(1024, 1, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    const int i = id.x;
+    BoidData boid = boidData[i];
+    const FlockData flock = flockData[boid.flockIndex];
+
+    // Compute each drive.
+    float2 cohesionDrive, separationDrive, alignmentDrive;
+    ComputeNeighborhoodDrives(boid, flock, cohesionDrive, separationDrive, alignmentDrive);
+
+    float2 survivalDrive = ComputeSurvivalDrive(boid, flock);
 
     // Compute the weighted acceleration from the drive
     const float2 acceleration = flock.separationWeight * separationDrive
                               + flock.alignmentWeight * alignmentDrive
-                              + flock.cohesionWeight * cohesionDrive;
+                              + flock.cohesionWeight * cohesionDrive
+                              + flock.survivalWeight * survivalDrive;
 
+    // Calculate the velocity update by accounting for max angular speed and max acceleration
     const float2 deltaVelocity = ComputeVelocityChange(
-        ithBoid.direction, ithBoid.speed, acceleration,
+        boid.direction, boid.speed, acceleration,
         flock.maxAcceleration, flock.maxAngularSpeedTau * deltaTime * 2.f * PI
     );
 
-    // Compute the velocity update
-    const float2 velocity = clamp_magnitude(ithBoid.velocity() + deltaVelocity, flock.minSpeed, flock.maxSpeed);
-    ithBoid.setVelocity(velocity);
+    // Account for velocity limit and apply the velocity update
+    const float2 velocity = clamp_magnitude(boid.velocity() + deltaVelocity, flock.minSpeed, flock.maxSpeed);
+    boid.setVelocity(velocity);
 
     // Compute the position update
-    ithBoid.position += velocity * deltaTime;
+    boid.position += velocity * deltaTime;
     
     // Copy back, there is no references in HLSL
-    boidData[i] = ithBoid;
+    boidData[i] = boid;
 }
