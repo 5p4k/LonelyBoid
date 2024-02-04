@@ -1,44 +1,6 @@
 #pragma kernel CSMain
 
-struct BoidData {
-    uint flockIndex;
-    float2 position;
-    float2 direction;
-    float speed;
-
-    float2 velocity() {
-        return speed * direction;
-    }
-
-    void setVelocity(float2 v) {
-        speed = length(v);
-        if (speed > 0.f) {
-            direction = v / speed;
-        }
-    }
-};
-
-struct FlockData {
-    float viewRadius;
-    float viewAngleTau;
-
-    float avoidRadius;
-    float avoidAngleTau;
-
-    float separationWeight;
-    float alignmentWeight;
-    float cohesionWeight;
-    float survivalWeight;
-
-    float maxAcceleration;
-    float minSpeed;
-    float maxSpeed;
-    float maxAngularSpeedTau;
-
-    float2 center;
-    float spawnRadius;
-    float killRadius;
-};
+#include "BoidsLibrary.cginc"
 
 RWStructuredBuffer<BoidData> boidData;
 int boidCount;
@@ -48,167 +10,28 @@ int flockCount;
 
 float deltaTime;
 
-static const float PI = 3.141592653589793f;
-
-
-float2 clamp_magnitude(float2 v, float minMagnitude, float maxMagnitude) {
-    const float inMagnitude = length(v);
-    const float outMagnitude = clamp(inMagnitude, minMagnitude, maxMagnitude);
-    if (inMagnitude > 0.f) {
-        v *= outMagnitude / inMagnitude;
-    }
-    return v;
-}
-
-
-float2 safe_normalize(float2 v) {
-    const float magnitude = length(v);
-    if (magnitude > 0.f) {
-        v /= magnitude;
-    }
-    return v;
-}
-
-float cross2(float2 v, float2 w) {
-    return v.x * w.y - v.y * w.x;
-}
-
-
-float2 ComputeVelocityChange(float2 direction, float speed, float2 acceleration,
-                             float maxAcceleration, float maxAngleRad) {
-    const float accelerationMagnitude = length(acceleration);
-    float accelerationFactor = deltaTime;
-
-    if (accelerationMagnitude >= 1.e-5f) {
-        /*
-         * Theoretically, the velocity change is given by v += clamp_magnitude(a, 0, maxAcceleration) * deltaT.
-         * This means that the candidates for the velocity change are
-         *  - a * deltaT * maxAcceleration / |a|
-         *  - a * deltaT
-         * whichever is smaller.
-         */
-        accelerationFactor = min(accelerationFactor, deltaTime * maxAcceleration / accelerationMagnitude);
-
-        // Do we need to reduce the acceleration even further to clamp down on angular speed?
-        if (maxAngleRad < PI) {
-            // Rotate the current direction by maxAngleRad to obtain the direction that marks the rotation limit
-            const float rotCos = cos(maxAngleRad);
-            float rotSin = sin(maxAngleRad);
-
-            // Does the acceleration make us rotate clockwise or counterclockwise?
-            if (cross2(direction, acceleration) < 0.f) {
-                rotSin *= -1.f;
-            }
-
-            const float2 maxAngleDir = float2(
-                direction.x * rotCos - direction.y * rotSin,
-                direction.x * rotSin + direction.y * rotCos
-            );
-
-            // Intersect velocity + t * acceleration with the line through maxAngleDir.
-            // We calculate the t that yields the intersection.
-            const float aCrossMaxAngleDir = cross2(acceleration, maxAngleDir);
-
-            // If it's zero or has the opposite sign as rotSin, there is no intersection for a t > 0.
-            // In particular, we will not be exceeding the max angle.
-            if (abs(aCrossMaxAngleDir) > 1.e-5f && sign(aCrossMaxAngleDir) != sign(rotSin)) {
-                // Scaling acceleration by this factor will keep the angular rotation under check
-                // I swear this is correct
-                const float scaling = -rotSin * speed / aCrossMaxAngleDir;
-                accelerationFactor = min(accelerationFactor, scaling);
-            }
-        }
-    }
-
-    return acceleration * accelerationFactor;
-}
-
-
-void ComputeNeighborhoodDrives(const BoidData boid, const FlockData flock,
-    out float2 cohesionDrive, out float2 separationDrive, out float2 alignmentDrive)
-{
-    /*
-     * Refer to [Lebar Bajec, Zimic, Mraz, 2007]: "The computational beauty of flocking: boids revisited"
-     *
-     * Note: most other sources, including the original paper by Reynolds, do not deal with the problem of how to
-     * computationally update the velocity. This one paper above instead explains exactly how the boids drives are to
-     * be implemented into code.
-     */
-
-    uint matesCount = 0;
-    float2 matesMeanPosition = float2(0, 0);
-    float2 matesMeanVelocity = float2(0, 0);
-    float2 avoidPotential = float2(0, 0);
-
-    // Note: 1 tau = 2 pi, thus here we are halving the angle
-    const float viewAngleCos = cos(flock.viewAngleTau * PI);
-    const float avoidAngleCos = cos(flock.avoidAngleTau * PI);
-
-    for (int i = 0; i < boidCount; ++i) {
-        BoidData otherBoid = boidData[i];
-
-        const float2 boidsOffset = otherBoid.position - boid.position;
-        const float boidsDistance = length(boidsOffset);
-        const float2 boidsDirection = boidsOffset / boidsDistance;
-
-        // The dot product of two normal vector is the cosine of the angle between them
-        const float angleCos = dot(boidsDirection, boid.direction);
-
-        if (otherBoid.flockIndex == boid.flockIndex) {
-            // Same flock, is it in view?
-            if (angleCos < viewAngleCos && boidsDistance <= flock.viewRadius) {
-                // Boids in range and in view that belong to the same flock contribute
-                ++matesCount;
-                matesMeanPosition += otherBoid.position;
-                matesMeanVelocity += otherBoid.velocity();
-            }
-        }
-
-        // Is in perception for avoidance?
-        if (angleCos < avoidAngleCos && boidsDistance > 0.f && boidsDistance <= flock.avoidRadius) {
-            // Other boids only contribute to avoidance in a measure equal to 1 / distance
-            avoidPotential -= boidsDirection / boidsDistance;
-        }
-    }
-
-    if (matesCount > 1) {
-        // Remove self from the equation and average
-        matesMeanVelocity = (matesMeanVelocity - boid.velocity()) / (matesCount - 1);
-        matesMeanPosition = (matesMeanPosition - boid.position) / (matesCount - 1);
-    }
-
-    // Compute each drive
-    separationDrive = safe_normalize(avoidPotential);
-    alignmentDrive = safe_normalize(matesMeanVelocity - boid.velocity());
-    cohesionDrive = safe_normalize(matesMeanPosition - boid.position);
-}
-
-float2 ComputeSurvivalDrive(const BoidData boid, const FlockData flock) {
-    float2 toCenterDir = flock.center - boid.position;
-    const float radius = length(toCenterDir);
-
-    if (radius > 1.e-5f) {
-        // If it's that close to the center, the drive will be anyways zero.
-        toCenterDir /= radius;
-    }
-
-    // Go quadratically from 0 at spawnRadius to 1 at killRadius
-    const float magnitude = pow(saturate((radius - flock.spawnRadius) / (flock.killRadius - flock.spawnRadius)), 2.f);
-
-    return toCenterDir * magnitude;
-}
-
 
 [numthreads(1024, 1, 1)]
 void CSMain (uint3 id : SV_DispatchThreadID) {
     const int i = id.x;
+
+    // Extract current boid
     BoidData boid = boidData[i];
     const FlockData flock = flockData[boid.flockIndex];
 
-    // Compute each drive.
+    // Compute neighborhood drives: 
     float2 cohesionDrive, separationDrive, alignmentDrive;
-    ComputeNeighborhoodDrives(boid, flock, cohesionDrive, separationDrive, alignmentDrive);
 
+    NeighborhoodDrivesCalculator driveCalc;
+    driveCalc.Initialize(boid, flock);
+    for (int j = 0; j < boidCount; ++j) {
+        if (i != j) {
+            driveCalc.Update(boidData[j]);
+        }
+    }
+    driveCalc.Compute(cohesionDrive, separationDrive, alignmentDrive);
+
+    // Compute force field drives:
     float2 survivalDrive = ComputeSurvivalDrive(boid, flock);
 
     // Compute the weighted acceleration from the drive
@@ -219,7 +42,7 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
 
     // Calculate the velocity update by accounting for max angular speed and max acceleration
     const float2 deltaVelocity = ComputeVelocityChange(
-        boid.direction, boid.speed, acceleration,
+        deltaTime, boid.direction, boid.speed, acceleration,
         flock.maxAcceleration, flock.maxAngularSpeedTau * deltaTime * 2.f * PI
     );
 
