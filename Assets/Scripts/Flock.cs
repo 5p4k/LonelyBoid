@@ -104,9 +104,10 @@ public class Flock : MonoBehaviour
     public Rect visualizationRect {
         get {
             float radius = Mathf.Max(spawnRadius, killRadius);
+            // Work around weird behavior of the editor rounding to integer.
             return new Rect(
-                transform.position.x - radius, transform.position.y - radius,
-                2 * radius, 2 * radius
+                Mathf.Floor(transform.position.x - radius), Mathf.Floor(transform.position.y - radius),
+                Mathf.Ceil(2 * radius), Mathf.Ceil(2 * radius)
             );
         }
     }
