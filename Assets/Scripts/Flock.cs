@@ -16,6 +16,7 @@ public class Flock : MonoBehaviour
     public float separationWeight = 6.0f;
     public float alignmentWeight = 1.0f;
     public float cohesionWeight = 4.0f;
+    public float survivalWeight = 1.0f;
 
     [Header("Dynamics")]
     public float maxAcceleration = 5.0f;
@@ -55,10 +56,36 @@ public class Flock : MonoBehaviour
         return boid;
     }
 
+    public bool ShouldKill(Boid boid) {
+        float radius = Vector3.Distance(boid.transform.position, transform.position);
+        return (radius < killRadius) == (killRadius < spawnRadius);
+    }
+
+
+    private void KillInstance(Boid boid) {
+        boid.flock = null;
+        boid.transform.parent = null;
+        boid.name = "[dead] " + boid.name;
+        Destroy(boid);
+    }
+
     public void Kill(Boid boid) {
         if (boids.Remove(boid)) {
-            Destroy(boid);
+            KillInstance(boid);
         }
+    }
+
+    public uint KillStrayBoids() {
+        uint killed = 0;
+        for (int i = boids.Count - 1; i >= 0; --i) {
+            Boid boid = boids[i];
+            if (ShouldKill(boid)) {
+                ++killed;
+                boids.RemoveAt(i);
+                KillInstance(boid);
+            }
+        }
+        return killed;
     }
 
     void Update() {
