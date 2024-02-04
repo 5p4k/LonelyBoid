@@ -94,30 +94,21 @@ public class Flock : MonoBehaviour
             Spawn();
         }
     }
-}
 
+    void OnDrawGizmos() {
+        bool active = Selection.Contains(gameObject);
 
-public class FlockGizmoDrawer 
-{
-    [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy)]
-    public static void DrawGizmoForFlock(Flock flock, GizmoType gizmoType) {
-        bool isSelected = (gizmoType & GizmoType.InSelectionHierarchy) != 0;
-        bool isActive = (gizmoType & GizmoType.Active) != 0;
-        if (isSelected) {
-            using (new Handles.DrawingScope(Color.red)) {
-                UnityEditor.Handles.DrawWireDisc(flock.transform.position, Vector3.back, flock.killRadius);
-            }
+        for (uint i = 0; i < 36; ++i) {
+            Vector3 dir = Quaternion.AngleAxis(i * 10.0f, Vector3.back) * Vector3.up;
+            Handles.DrawLine(transform.position + spawnRadius * dir,
+                             transform.position + killRadius * dir);
         }
 
-        using (new Handles.DrawingScope(isActive ? Color.yellow : Handles.color)) {
-            UnityEditor.Handles.DrawWireDisc(flock.transform.position, Vector3.back, flock.spawnRadius);
+        using (new Handles.DrawingScope(active ? Color.green : Handles.color)) {
+            Handles.DrawWireDisc(transform.position, Vector3.back, spawnRadius, active ? 2.0f : 0.0f);
         }
-
-        if (isActive) {
-            // Manually draw the outline of the boids
-            foreach (Boid boid in flock.boids) {
-                BoidGizmoDrawer.DrawGizmoForBoid(boid, GizmoType.InSelectionHierarchy);
-            }
+        using (new Handles.DrawingScope(active ? Color.red : Handles.color)) {
+            Handles.DrawWireDisc(transform.position, Vector3.back, killRadius, active ? 2.0f : 0.0f);
         }
     }
 }
