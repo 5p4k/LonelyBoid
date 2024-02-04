@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Linq;
 
 public class BoidManager : MonoBehaviour
 {
@@ -71,6 +72,9 @@ public class BoidManager : MonoBehaviour
         uint boidIndex = 0;
         uint flockIndex = 0;
         foreach (Flock flock in flocks) {
+            if (flock == null) {
+                continue;
+            }
             foreach (Boid boid in flock.boids) {
                 _boidData[boidIndex].flockIndex = flockIndex;
                 _boidData[boidIndex].position = boid.transform.position;
@@ -131,6 +135,9 @@ public class BoidManager : MonoBehaviour
         // Apply update
         uint boidIndex = 0;
         foreach (Flock flock in flocks) {
+            if (flock == null) {
+                continue;
+            }
             foreach (Boid boid in flock.boids) {
                 boid.transform.position = _boidData[boidIndex].position;
                 boid.transform.up = _boidData[boidIndex].direction;
