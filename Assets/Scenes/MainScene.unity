@@ -295,9 +295,11 @@ MonoBehaviour:
   spawnFrequency: 3
   spawnRadius: 5
   maxCount: 40
+  killRadius: 10.234388
   separationWeight: 6
   alignmentWeight: 1
   cohesionWeight: 4
+  survivalWeight: 1
   maxAcceleration: 5
   minSpeed: 1
   maxSpeed: 10

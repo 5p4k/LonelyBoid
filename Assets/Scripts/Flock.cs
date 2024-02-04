@@ -94,21 +94,50 @@ public class Flock : MonoBehaviour
             Spawn();
         }
     }
+}
 
-    void OnDrawGizmos() {
-        bool active = Selection.Contains(gameObject);
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(Flock))]
+public class FlockEditor : Editor {
+
+    [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy)]
+    static void DrawGizmo(Flock flock, GizmoType gizmoType) {
+        bool active = (gizmoType & GizmoType.Active) != 0;
 
         for (uint i = 0; i < 36; ++i) {
             Vector3 dir = Quaternion.AngleAxis(i * 10.0f, Vector3.back) * Vector3.up;
-            Handles.DrawLine(transform.position + spawnRadius * dir,
-                             transform.position + killRadius * dir);
+            Handles.DrawLine(flock.transform.position + flock.spawnRadius * dir,
+                             flock.transform.position + flock.killRadius * dir);
         }
 
         using (new Handles.DrawingScope(active ? Color.green : Handles.color)) {
-            Handles.DrawWireDisc(transform.position, Vector3.back, spawnRadius, active ? 2.0f : 0.0f);
+            Handles.DrawWireDisc(flock.transform.position, Vector3.back, flock.spawnRadius);
         }
         using (new Handles.DrawingScope(active ? Color.red : Handles.color)) {
-            Handles.DrawWireDisc(transform.position, Vector3.back, killRadius, active ? 2.0f : 0.0f);
+            Handles.DrawWireDisc(flock.transform.position, Vector3.back, flock.killRadius);
+        }
+    }
+
+    void HandleRadius(Flock flock, ref float radius, string description) {
+        EditorGUI.BeginChangeCheck();
+        float newRadius = Handles.RadiusHandle(Quaternion.identity, flock.transform.position, radius, true);
+        if (EditorGUI.EndChangeCheck()) {
+            Undo.RecordObject(flock, description);
+            radius = newRadius;
+        }
+    }
+
+    public void OnSceneGUI() {
+        Flock flock = target as Flock;
+
+        using (new Handles.DrawingScope(Color.green)) {
+            HandleRadius(flock, ref flock.spawnRadius, "Change spawn radius");
+        }
+
+        using (new Handles.DrawingScope(Color.red)) {
+            HandleRadius(flock, ref flock.killRadius, "Change kill radius");
         }
     }
 }
+#endif
