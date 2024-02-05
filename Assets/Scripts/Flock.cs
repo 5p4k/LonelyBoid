@@ -128,7 +128,7 @@ public class Flock : MonoBehaviour
         }
 
         if (visualization == null) {
-            visualization = new RenderTexture(1024, 1024, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            visualization = new RenderTexture(256, 256, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
             visualization.enableRandomWrite = true;
             visualization.Create();
         }

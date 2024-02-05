@@ -61,20 +61,8 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
                               + flock.cohesionWeight * cohesionDrive
                               + flock.survivalWeight * survivalDrive;
 
-    // Convert to color
-    const float2 reducedAccel = clamp(acceleration / maxValue, -1.f, 1.f);
-
-    const float2 rgMix = saturate(+reducedAccel);
-    const float2 mcMix = saturate(-reducedAccel);
-
-    const float3 colR = float3(1, 0, 0);
-    const float3 colG = float3(0, 1, 0);
-    const float3 colM = float3(1, 0, 1);
-    const float3 colC = float3(0, 1, 1);
-
-    float4 color;
-    color.xyz = colR * rgMix.x + colG * rgMix.y + colM * mcMix.x + colC * mcMix.y;
-    color.w = length(acceleration) > maxValue ? 0.f : 1.f;
+    float4 color = float4(0, 0, 0, 0);
+    color.xy = acceleration;
 
     textureOutput[id.xy] = color;
 }

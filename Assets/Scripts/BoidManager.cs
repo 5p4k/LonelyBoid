@@ -39,6 +39,7 @@ public class BoidManager : MonoBehaviour
 
     public ComputeShader updateShader;
     public ComputeShader visualizeShader;
+    public ComputeShader divergenceShader;
 
     BoidData[] _boidData = null;
     ComputeBuffer _boidDataBuffer = null;
@@ -187,6 +188,25 @@ public class BoidManager : MonoBehaviour
 
         visualizeShader.SetTexture(0, "textureOutput", texture);
         visualizeShader.Dispatch(0, texture.width, texture.height, 1);
+
+        // ---
+
+        int kernel0 = divergenceShader.FindKernel("CS0");
+        int kernel1 = divergenceShader.FindKernel("CS1");
+
+        divergenceShader.SetFloats("textureWindow", texWin);
+        divergenceShader.SetInts("textureSize", texSz);
+        divergenceShader.SetTexture(kernel0, "textureOutput", texture);
+        divergenceShader.SetTexture(kernel1, "textureOutput", texture);
+
+        RenderTexture scratch = RenderTexture.GetTemporary(texture.descriptor);
+        divergenceShader.SetTexture(kernel0, "textureScratch", scratch);
+        divergenceShader.SetTexture(kernel1, "textureScratch", scratch);
+
+        divergenceShader.Dispatch(kernel0, texture.width, texture.height, 1);
+        divergenceShader.Dispatch(kernel1, texture.width, texture.height, 1);
+
+        RenderTexture.ReleaseTemporary(scratch);
     }
 
     void OnDestroy() {
