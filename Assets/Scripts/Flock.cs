@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 
+
 public class Flock : MonoBehaviour
 {
     [Header("Spawn")]
@@ -104,10 +105,9 @@ public class Flock : MonoBehaviour
     public Rect visualizationRect {
         get {
             float radius = Mathf.Max(spawnRadius, killRadius);
-            // Work around weird behavior of the editor rounding to integer.
             return new Rect(
-                Mathf.Floor(transform.position.x - radius), Mathf.Floor(transform.position.y - radius),
-                Mathf.Ceil(2 * radius), Mathf.Ceil(2 * radius)
+                transform.position.x - radius, transform.position.y - radius,
+                2 * radius, 2 * radius
             );
         }
     }
@@ -128,7 +128,7 @@ public class Flock : MonoBehaviour
         }
 
         if (visualization == null) {
-            visualization = new RenderTexture(256, 256, 0, RenderTextureFormat.ARGBHalf, RenderTextureReadWrite.Linear);
+            visualization = new RenderTexture(16, 16, 0, RenderTextureFormat.RGFloat, RenderTextureReadWrite.Linear);
             visualization.enableRandomWrite = true;
             visualization.Create();
         }
@@ -155,10 +155,35 @@ public class Flock : MonoBehaviour
 [CustomEditor(typeof(Flock))]
 public class FlockEditor : Editor {
 
+    static void DrawVectorField(Rect rect, RenderTexture renderTexture) {
+        Vector2Int size = new Vector2Int(renderTexture.width, renderTexture.height);
+        Vector2 pixelSize  = new Vector2(rect.width / size.x, rect.height / size.y);
+
+        // RenderTextures do not exist on the CPU side, make a clone
+        Texture2D texture = new Texture2D(size.x, size.y, TextureFormat.RGFloat, false);
+
+        // When rendering gizmos, we're actually rendering to a texture. Gotta save that
+        var oldRenderTexture = RenderTexture.active;
+        // Lifesaver: https://discussions.unity.com/t/convert-a-rendertexture-to-a-texture2d/946/2
+        RenderTexture.active = renderTexture;
+        texture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
+        texture.Apply();
+        RenderTexture.active = oldRenderTexture;
+
+        var data = texture.GetRawTextureData<Vector2>();
+        int i = 0;
+        for (int y = 0; y < size.y; ++y) {
+            for (int x = 0; x < size.x; ++x) {
+                Vector2 pos = rect.min + 0.5f * pixelSize + pixelSize * new Vector2(x, y);
+                Gizmos.DrawRay(pos, data[i++]);
+            }
+        }
+    }
+
     [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy)]
     static void DrawGizmo(Flock flock, GizmoType gizmoType) {
         if (flock.visualization != null) {
-            Gizmos.DrawGUITexture(flock.visualizationRect, flock.visualization);
+            DrawVectorField(flock.visualizationRect, flock.visualization);
         }
 
         bool active = (gizmoType & GizmoType.Active) != 0;
