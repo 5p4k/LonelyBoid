@@ -30,23 +30,20 @@ public class Flock : MonoBehaviour
     public float viewAngleTau = 0.5f;
     public float avoidRadius = 2f;
     public float avoidAngleTau = 0.8f;
-    
+
     [HideInInspector]
     public List<Boid> boids = new List<Boid>();
 
-    [HideInInspector]
-    public RenderTexture visualization;
-
-    [Header("Debug")]
-    public float visualizationMaxValue = 10.0f;
+    [Header("Acceleration Field")]
+    public int resolution = 16;
+    public bool liveUpdateWhenPlaying = false;
+    public float liveUpdateMaxFps = 15;
 
     float _lastSpawn = 0.0f;
+    float _lastFieldUpdate = 0.0f;
 
-    float spawnPeriod {
-        get {
-            return 1.0f / spawnFrequency;
-        }
-    }
+    RenderTexture _accelFieldRT;
+    Texture2D _accelFieldLocal;
 
     public Boid Spawn() {
         _lastSpawn = Time.time;
@@ -97,12 +94,18 @@ public class Flock : MonoBehaviour
 
     void Update() {
         // Spawn a boid if enough time has passed
+        float spawnPeriod = 1.0f / spawnFrequency;
+        float fieldRefreshPeriod = (liveUpdateMaxFps > 0.0f) ? 1.0f / liveUpdateMaxFps : 0.0f;
+
         if (Time.time - _lastSpawn > spawnPeriod && boids.Count < maxCount) {
             Spawn();
         }
+        if (liveUpdateWhenPlaying && Time.time - _lastFieldUpdate > fieldRefreshPeriod) {
+            UpdateAccelerationField();
+        }
     }
 
-    public Rect visualizationRect {
+    public Rect accelerationFieldDomain {
         get {
             float radius = Mathf.Max(spawnRadius, killRadius);
             return new Rect(
@@ -112,7 +115,18 @@ public class Flock : MonoBehaviour
         }
     }
 
-    public void UpdateVisualization() {
+    public Texture2D accelerationField {
+        get {
+            if (_accelFieldRT != null) {
+                return _accelFieldLocal;
+            }
+            return null;
+        }
+    }
+
+    public void UpdateAccelerationField() {
+        _lastFieldUpdate = Time.time;
+
         BoidManager ownManager = null;
         var managers = Object.FindObjectsOfType(typeof(BoidManager));
         foreach (BoidManager manager in managers) {
@@ -127,26 +141,42 @@ public class Flock : MonoBehaviour
             return;
         }
 
-        if (visualization == null) {
-            visualization = new RenderTexture(16, 16, 0, RenderTextureFormat.RGFloat, RenderTextureReadWrite.Linear);
-            visualization.enableRandomWrite = true;
-            visualization.Create();
+        if (_accelFieldRT == null || _accelFieldRT.width != resolution) {
+            ClearAccelerationField();
+            _accelFieldRT = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.RGFloat, RenderTextureReadWrite.Linear);
+            _accelFieldRT.enableRandomWrite = true;
+            _accelFieldRT.Create();
         }
 
-        
-        ownManager.RenderFlockField(this, visualizationRect, visualization);
+
+        ownManager.RenderFlockField(this, accelerationFieldDomain, _accelFieldRT);
+
+        if (_accelFieldLocal == null || _accelFieldLocal.width != resolution)
+        {
+            _accelFieldLocal = new Texture2D(_accelFieldRT.width, _accelFieldRT.height, TextureFormat.RGFloat, false);
+        }
+
+        // Copy to the cache because we cannot directly access a rendertexture content:
+        // RenderTextures do not exist on the CPU side.
+
+        // When rendering gizmos, we're actually rendering to a texture. Gotta save that
+        var oldRenderTexture = RenderTexture.active;
+        // Lifesaver: https://discussions.unity.com/t/convert-a-rendertexture-to-a-texture2d/946/2
+        RenderTexture.active = _accelFieldRT;
+        _accelFieldLocal.ReadPixels(new Rect(0, 0, _accelFieldRT.width, _accelFieldRT.height), 0, 0);
+        _accelFieldLocal.Apply();
+        RenderTexture.active = oldRenderTexture;
     }
 
-    public void ClearVisualization() {
-        if (visualization != null) {
-            visualization.Release();
-            visualization = null;
+    public void ClearAccelerationField() {
+        if (_accelFieldRT != null) {
+            _accelFieldRT.Release();
+            _accelFieldRT = null;
         }
-
     }
 
     void OnDestroy() {
-        ClearVisualization();
+        ClearAccelerationField();
     }
 }
 
@@ -155,43 +185,45 @@ public class Flock : MonoBehaviour
 [CustomEditor(typeof(Flock))]
 public class FlockEditor : Editor {
 
-    static void DrawVectorField(Rect rect, RenderTexture renderTexture) {
-        Vector2Int size = new Vector2Int(renderTexture.width, renderTexture.height);
+    static void DrawVectorField(Rect rect, Texture2D field, float baseScaleFactor) {
+        Vector2Int size = new Vector2Int(field.width, field.height);
         Vector2 pixelSize  = new Vector2(rect.width / size.x, rect.height / size.y);
 
-        // RenderTextures do not exist on the CPU side, make a clone
-        Texture2D texture = new Texture2D(size.x, size.y, TextureFormat.RGFloat, false);
+        float cellSize = Mathf.Min(pixelSize.x, pixelSize.y);
 
-        // When rendering gizmos, we're actually rendering to a texture. Gotta save that
-        var oldRenderTexture = RenderTexture.active;
-        // Lifesaver: https://discussions.unity.com/t/convert-a-rendertexture-to-a-texture2d/946/2
-        RenderTexture.active = renderTexture;
-        texture.ReadPixels(new Rect(0, 0, renderTexture.width, renderTexture.height), 0, 0);
-        texture.Apply();
-        RenderTexture.active = oldRenderTexture;
-
-        var data = texture.GetRawTextureData<Vector2>();
+        var data = field.GetRawTextureData<Vector2>();
         int i = 0;
         for (int y = 0; y < size.y; ++y) {
             for (int x = 0; x < size.x; ++x) {
                 Vector2 pos = rect.min + 0.5f * pixelSize + pixelSize * new Vector2(x, y);
-                Gizmos.DrawRay(pos, data[i++]);
+                Vector2 v = data[i++] * baseScaleFactor;
+
+                // Clamp length at cell size, but make thicker from there onwards
+                float length = v.magnitude;
+                float scale = Mathf.Max(0.0f, length / cellSize);
+                
+                if (length > cellSize) {
+                    v = v.normalized * cellSize;
+                }
+
+                Handles.DrawSolidDisc(pos, Vector3.back, 0.05f * cellSize * scale);
+                Handles.DrawLine(pos, pos + v, scale);
             }
         }
     }
 
     [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy)]
     static void DrawGizmo(Flock flock, GizmoType gizmoType) {
-        if (flock.visualization != null) {
-            DrawVectorField(flock.visualizationRect, flock.visualization);
-        }
-
         bool active = (gizmoType & GizmoType.Active) != 0;
 
-        for (uint i = 0; i < 36; ++i) {
-            Vector3 dir = Quaternion.AngleAxis(i * 10.0f, Vector3.back) * Vector3.up;
-            Handles.DrawLine(flock.transform.position + flock.spawnRadius * dir,
-                             flock.transform.position + flock.killRadius * dir);
+        if (flock.accelerationField != null) {
+            DrawVectorField(flock.accelerationFieldDomain, flock.accelerationField, 1.0f / flock.maxAcceleration);
+        } else {
+            for (uint i = 0; i < 36; ++i) {
+                Vector3 dir = Quaternion.AngleAxis(i * 10.0f, Vector3.back) * Vector3.up;
+                Handles.DrawLine(flock.transform.position + flock.spawnRadius * dir,
+                                 flock.transform.position + flock.killRadius * dir);
+            }
         }
 
         using (new Handles.DrawingScope(active ? Color.green : Handles.color)) {
@@ -228,12 +260,14 @@ public class FlockEditor : Editor {
 
         DrawDefaultInspector();
 
-        if (GUILayout.Button("Update Visualization")) {
-            flock.UpdateVisualization();
+        if (GUILayout.Button("Refresh field")) {
+            flock.UpdateAccelerationField();
+            UnityEditor.SceneView.RepaintAll();
         }
 
-        if (GUILayout.Button("Clear Visualization")) {
-            flock.ClearVisualization();
+        if (GUILayout.Button("Clear field")) {
+            flock.ClearAccelerationField();
+            UnityEditor.SceneView.RepaintAll();
         }
     }
 }
