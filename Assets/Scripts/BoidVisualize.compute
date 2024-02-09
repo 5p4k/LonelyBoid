@@ -23,8 +23,8 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
 
     // Patch the flock data to allow 360 degrees view and avoidance to remove
     // dependency from orientation
-    // flock.viewAngleTau = 1.f;
-    // flock.avoidAngleTau = 1.f;
+    flock.viewAngleTau = 1.f;
+    flock.avoidAngleTau = 1.f;
 
     // A dummy boid that is used to derive the drives
     BoidData dummy;

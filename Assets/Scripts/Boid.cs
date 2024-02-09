@@ -17,19 +17,19 @@ public class Boid : MonoBehaviour
         float angleDeg = angleTau * 360.0f;
         Vector3 start = Quaternion.AngleAxis(-0.5f * angleDeg, Vector3.back) * transform.up;
         if (solid) {
-            UnityEditor.Handles.DrawSolidArc(transform.position, Vector3.back, start, angleDeg, radius);
+            Handles.DrawSolidArc(transform.position, Vector3.back, start, angleDeg, radius);
         } else {
-            UnityEditor.Handles.DrawWireArc(transform.position, Vector3.back, start, angleDeg, radius);
-            UnityEditor.Handles.DrawLine(transform.position, transform.position + start * radius);
+            Handles.DrawWireArc(transform.position, Vector3.back, start, angleDeg, radius);
+            Handles.DrawLine(transform.position, transform.position + start * radius);
             Vector3 end = Quaternion.AngleAxis(angleDeg, Vector3.back) * start;
-            UnityEditor.Handles.DrawLine(transform.position, transform.position + end * radius);
+            Handles.DrawLine(transform.position, transform.position + end * radius);
         }
     }
 
     void OnDrawGizmosSelected() {
         bool active = Selection.activeGameObject == gameObject;
 
-        Color color = UnityEditor.Handles.color;
+        Color color = Handles.color;
         color.a = active ? 0.05f : 0.01f;
 
         using (new Handles.DrawingScope(color)) {

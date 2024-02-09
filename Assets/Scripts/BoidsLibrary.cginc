@@ -174,7 +174,7 @@ struct NeighborhoodDrivesCalculator {
 
         if (otherBoid.flockIndex == _boid.flockIndex) {
             // Same flock, is it in view?
-            if (angleCos < _viewAngleCos && boidsDistance <= _viewRadius) {
+            if (angleCos > _viewAngleCos && boidsDistance <= _viewRadius) {
                 // Boids in range and in view that belong to the same flock contribute
                 ++_matesCount;
                 _matesMeanPosition += otherBoid.position;
@@ -183,7 +183,7 @@ struct NeighborhoodDrivesCalculator {
         }
 
         // Is in perception for avoidance?
-        if (angleCos < _avoidAngleCos && boidsDistance > 0.f && boidsDistance <= _avoidRadius) {
+        if (angleCos > _avoidAngleCos && boidsDistance > 0.f && boidsDistance <= _avoidRadius) {
             // Other boids only contribute to avoidance in a measure equal to 1 / distance
             _avoidPotential -= boidsDirection / boidsDistance;
         }

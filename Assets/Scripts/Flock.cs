@@ -14,10 +14,10 @@ public class Flock : MonoBehaviour
     public float killRadius = 13.0f;
 
     [Header("Behaviour")]
-    public float separationWeight = 6.0f;
-    public float alignmentWeight = 1.0f;
+    public float separationWeight = 5.0f;
+    public float alignmentWeight = 2.0f;
     public float cohesionWeight = 4.0f;
-    public float survivalWeight = 1.0f;
+    public float survivalWeight = 8.0f;
 
     [Header("Dynamics")]
     public float maxAcceleration = 5.0f;
