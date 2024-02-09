@@ -297,20 +297,22 @@ MonoBehaviour:
   spawnRadius: 5
   maxCount: 40
   killRadius: 8.85994
-  separationWeight: 6
-  alignmentWeight: 1
+  separationWeight: 2
+  alignmentWeight: 3
   cohesionWeight: 4
-  survivalWeight: 1
-  maxAcceleration: 5
-  minSpeed: 1
-  maxSpeed: 10
+  survivalWeight: 10
+  maxAcceleration: 2
+  minSpeed: 0.1
+  maxSpeed: 3
   maxAngularSpeedTau: 0.5
   viewRadius: 5
   viewAngleTau: 0.5
   avoidRadius: 2
   avoidAngleTau: 0.8
   boids: []
-  visualization: {fileID: 1587617807}
+  resolution: 16
+  liveUpdateWhenPlaying: 0
+  liveUpdateMaxFps: 15
 --- !u!4 &1515431703
 Transform:
   m_ObjectHideFlags: 0
@@ -326,44 +328,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!84 &1587617807
-RenderTexture:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_ForcedFallbackFormat: 4
-  m_DownscaleFallback: 0
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 5
-  m_Width: 1024
-  m_Height: 1024
-  m_AntiAliasing: 1
-  m_MipCount: -1
-  m_DepthStencilFormat: 0
-  m_ColorFormat: 48
-  m_MipMap: 0
-  m_GenerateMips: 1
-  m_SRGB: 0
-  m_UseDynamicScale: 0
-  m_BindMS: 0
-  m_EnableCompatibleFormat: 1
-  m_EnableRandomWrite: 1
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 1
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 1
-    m_WrapV: 1
-    m_WrapW: 1
-  m_Dimension: 2
-  m_VolumeDepth: 1
-  m_ShadowSamplingMode: 2
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

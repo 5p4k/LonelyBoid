@@ -9,24 +9,24 @@ public class Flock : MonoBehaviour
     [Header("Spawn")]
     public Boid prefab;
     public float spawnFrequency = 3.0f;
-    public float spawnRadius = 10.0f;
+    public float spawnRadius = 5.0f;
     public uint maxCount = 40;
     public float killRadius = 13.0f;
 
     [Header("Behaviour")]
-    public float separationWeight = 5.0f;
-    public float alignmentWeight = 2.0f;
+    public float separationWeight = 2.0f;
+    public float alignmentWeight = 3.0f;
     public float cohesionWeight = 4.0f;
-    public float survivalWeight = 8.0f;
+    public float survivalWeight = 10.0f;
 
     [Header("Dynamics")]
-    public float maxAcceleration = 5.0f;
+    public float maxAcceleration = 2.0f;
     public float minSpeed = 0.1f;
-    public float maxSpeed = 10.0f;
+    public float maxSpeed = 3.0f;
     public float maxAngularSpeedTau = 0.5f;
 
     [Header("Perception")]
-    public float viewRadius = 5f;
+    public float viewRadius = 4.0f;
     public float viewAngleTau = 0.5f;
     public float avoidRadius = 2f;
     public float avoidAngleTau = 0.8f;
