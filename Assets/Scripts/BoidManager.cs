@@ -37,8 +37,9 @@ public class BoidManager : MonoBehaviour
 
     public List<Flock> flocks = new List<Flock>();
 
+    [Header("Shaders")]
     public ComputeShader updateShader;
-    public ComputeShader visualizeShader;
+    public ComputeShader fieldShader;
 
     BoidData[] _boidData = null;
     ComputeBuffer _boidDataBuffer = null;
@@ -54,6 +55,15 @@ public class BoidManager : MonoBehaviour
             }
         }
         return retval;
+    }
+
+    void Awake() {
+        if (updateShader == null) {
+            updateShader = (ComputeShader)AssetDatabase.LoadAssetAtPath("Assets/Scripts/BoidUpdate.compute", typeof(ComputeShader));
+        }
+        if (fieldShader == null) {
+            fieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath("Assets/Scripts/BoidField.compute", typeof(ComputeShader));
+        }
     }
 
 
@@ -171,20 +181,20 @@ public class BoidManager : MonoBehaviour
         _boidDataBuffer.SetData(_boidData);
         _flockDataBuffer.SetData(_flockData);
 
-        visualizeShader.SetBuffer(0, "boidData", _boidDataBuffer);
-        visualizeShader.SetBuffer(0, "flockData", _flockDataBuffer);
+        fieldShader.SetBuffer(0, "boidData", _boidDataBuffer);
+        fieldShader.SetBuffer(0, "flockData", _flockDataBuffer);
 
-        visualizeShader.SetInt("boidCount", (int)boidCount);
-        visualizeShader.SetInt("flockIndex", flockIndex);
+        fieldShader.SetInt("boidCount", (int)boidCount);
+        fieldShader.SetInt("flockIndex", flockIndex);
 
         float[] texWin = new float[4] {window.xMin, window.yMin, window.width, window.height};
         int[] texSz = new int[2] {texture.width, texture.height};
 
-        visualizeShader.SetFloats("textureWindow", texWin);
-        visualizeShader.SetInts("textureSize", texSz);
+        fieldShader.SetFloats("textureWindow", texWin);
+        fieldShader.SetInts("textureSize", texSz);
 
-        visualizeShader.SetTexture(0, "textureOutput", texture);
-        visualizeShader.Dispatch(0, texture.width, texture.height, 1);
+        fieldShader.SetTexture(0, "textureOutput", texture);
+        fieldShader.Dispatch(0, texture.width, texture.height, 1);
     }
 
     void OnDestroy() {

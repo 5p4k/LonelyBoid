@@ -260,6 +260,8 @@ public class FlockEditor : Editor {
 
         DrawDefaultInspector();
 
+        EditorGUILayout.BeginHorizontal();
+
         if (GUILayout.Button("Refresh field")) {
             flock.UpdateAccelerationField();
             UnityEditor.SceneView.RepaintAll();
@@ -269,6 +271,8 @@ public class FlockEditor : Editor {
             flock.ClearAccelerationField();
             UnityEditor.SceneView.RepaintAll();
         }
+
+        EditorGUILayout.EndHorizontal();
     }
 }
 #endif
