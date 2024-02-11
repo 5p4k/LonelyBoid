@@ -2,15 +2,45 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using UnityEngine.Pool;
 
+public struct FlockData {
+    public float viewRadius;
+    public float viewAngleTau;
+
+    public float avoidRadius;
+    public float avoidAngleTau;
+
+    public float separationWeight;
+    public float alignmentWeight;
+    public float cohesionWeight;
+    public float survivalWeight;
+
+    public float maxAcceleration;
+    public float minSpeed;
+    public float maxSpeed;
+    public float maxAngularSpeedTau;
+
+    public Vector2 center;
+    public float spawnRadius;
+    public float killRadius;
+}
+
+public class BoidComparer : IComparer<Boid> {
+    // Compares by Height, Length, and Width.
+    public int Compare(Boid x, Boid y) {
+        return x.GetInstanceID() - y.GetInstanceID();
+    }
+}
 
 public class Flock : MonoBehaviour
 {
     [Header("Spawn")]
-    public Boid prefab;
+    public GameObject prefab;
     public float spawnFrequency = 3.0f;
     public float spawnRadius = 5.0f;
     public uint maxCount = 40;
+    public uint maxPoolCapacity = 40;
     public float killRadius = 13.0f;
 
     [Header("Behaviour")]
@@ -32,7 +62,7 @@ public class Flock : MonoBehaviour
     public float avoidAngleTau = 0.8f;
 
     [HideInInspector]
-    public List<Boid> boids = new List<Boid>();
+    public SortedSet<Boid> boids = new SortedSet<Boid>(new BoidComparer());
 
     [Header("Acceleration Field")]
     public int resolution = 16;
@@ -45,9 +75,40 @@ public class Flock : MonoBehaviour
     RenderTexture _accelFieldRT;
     Texture2D _accelFieldLocal;
 
-    public Boid Spawn() {
+    ObjectPool<Boid> _boidsPool;
+
+    public FlockData ToBufferData() {
+        var retval = new FlockData();
+        retval.viewRadius = viewRadius;
+        retval.viewAngleTau = viewAngleTau;
+        retval.avoidRadius = avoidRadius;
+        retval.avoidAngleTau = avoidAngleTau;
+        retval.separationWeight = separationWeight;
+        retval.alignmentWeight = alignmentWeight;
+        retval.cohesionWeight = cohesionWeight;
+        retval.survivalWeight = survivalWeight;
+        retval.maxAcceleration = maxAcceleration;
+        retval.minSpeed = minSpeed;
+        retval.maxSpeed = maxSpeed;
+        retval.maxAngularSpeedTau = maxAngularSpeedTau;
+        retval.center = transform.position;
+        retval.spawnRadius = spawnRadius;
+        retval.killRadius = killRadius;
+        return retval;
+    }
+
+    Boid CreateBoid() {
+        GameObject instance = Instantiate(prefab, this.transform);
+        Boid boid = instance.GetComponent<Boid>();
+
+        if (boid == null) {
+            boid = instance.AddComponent(typeof(Boid)) as Boid;
+        }
+        return boid;
+    }
+
+    void OnSpawn(Boid boid) {
         _lastSpawn = Time.time;
-        Boid boid = Instantiate(prefab, this.transform);
         boid.flock = this;
 
         // Randomize position and orientation
@@ -57,7 +118,22 @@ public class Flock : MonoBehaviour
         boid.speed = minSpeed + Random.value * (maxSpeed - minSpeed);
 
         boids.Add(boid);
-        return boid;
+        boid.gameObject.SetActive(true);
+    }
+
+    void OnKill(Boid boid) {
+        boid.gameObject.SetActive(false);
+        boids.Remove(boid);
+        boid.flock = null;
+    }
+
+    void OnKillDestroy(Boid boid) {
+        OnKill(boid);
+        Destroy(boid.gameObject);
+    }
+
+    public Boid Spawn() {
+        return _boidsPool.Get();
     }
 
     public bool ShouldKill(Boid boid) {
@@ -65,43 +141,59 @@ public class Flock : MonoBehaviour
         return (radius < killRadius) == (killRadius < spawnRadius);
     }
 
-
-    private void KillInstance(Boid boid) {
-        boid.flock = null;
-        boid.transform.parent = null;
-        boid.name = "[dead] " + boid.name;
-        Destroy(boid);
-    }
-
     public void Kill(Boid boid) {
-        if (boids.Remove(boid)) {
-            KillInstance(boid);
-        }
+        _boidsPool.Release(boid);
     }
 
     public uint KillStrayBoids() {
-        uint killed = 0;
-        for (int i = boids.Count - 1; i >= 0; --i) {
-            Boid boid = boids[i];
+        List<Boid> toKill = new List<Boid>();
+        foreach (Boid boid in boids) {
             if (ShouldKill(boid)) {
-                ++killed;
-                boids.RemoveAt(i);
-                KillInstance(boid);
+                toKill.Add(boid);
             }
         }
-        return killed;
+        foreach (Boid boid in toKill) {
+            Kill(boid);
+        }
+        return (uint)toKill.Count;
+    }
+
+    public Boid SpawnIfNeeded() {
+        float spawnPeriod = 1.0f / spawnFrequency;
+        if (Time.time - _lastSpawn > spawnPeriod && boids.Count < maxCount) {
+            return Spawn();
+        }
+        return null;
+    }
+
+    BoidsContainer GetContainer() {
+        Transform t = transform.parent;
+        while (t != null) {
+            BoidsContainer container = t.gameObject.GetComponent<BoidsContainer>();
+            if (container) {
+                return container;
+            }
+            t = t.parent;
+        }
+        return null;
+    }
+
+    void Start() {
+        _boidsPool = new ObjectPool<Boid>(
+            CreateBoid,
+            OnSpawn,
+            OnKill,
+            OnKillDestroy,
+            true,
+            (int)maxCount,
+            (int)maxPoolCapacity
+        );
     }
 
     void Update() {
-        // Spawn a boid if enough time has passed
-        float spawnPeriod = 1.0f / spawnFrequency;
         float fieldRefreshPeriod = (liveUpdateMaxFps > 0.0f) ? 1.0f / liveUpdateMaxFps : 0.0f;
-
-        if (Time.time - _lastSpawn > spawnPeriod && boids.Count < maxCount) {
-            Spawn();
-        }
         if (liveUpdateWhenPlaying && Time.time - _lastFieldUpdate > fieldRefreshPeriod) {
-            UpdateAccelerationField();
+            RefreshAccelerationField();
         }
     }
 
@@ -124,23 +216,7 @@ public class Flock : MonoBehaviour
         }
     }
 
-    public void UpdateAccelerationField() {
-        _lastFieldUpdate = Time.time;
-
-        BoidManager ownManager = null;
-        var managers = Object.FindObjectsOfType(typeof(BoidManager));
-        foreach (BoidManager manager in managers) {
-            if (manager.flocks.Contains(this)) {
-                ownManager = manager;
-                break;
-            }
-        }
-
-        if (ownManager == null) {
-            Debug.LogWarning("Could not find manager for flock.");
-            return;
-        }
-
+    public void RefreshAccelerationField() {
         if (_accelFieldRT == null || _accelFieldRT.width != resolution) {
             ClearAccelerationField();
             _accelFieldRT = new RenderTexture(resolution, resolution, 0, RenderTextureFormat.RGFloat, RenderTextureReadWrite.Linear);
@@ -148,8 +224,7 @@ public class Flock : MonoBehaviour
             _accelFieldRT.Create();
         }
 
-
-        ownManager.RenderFlockField(this, accelerationFieldDomain, _accelFieldRT);
+        GetContainer().ComputeAccelerationField(this, accelerationFieldDomain, _accelFieldRT);
 
         if (_accelFieldLocal == null || _accelFieldLocal.width != resolution)
         {
@@ -166,6 +241,8 @@ public class Flock : MonoBehaviour
         _accelFieldLocal.ReadPixels(new Rect(0, 0, _accelFieldRT.width, _accelFieldRT.height), 0, 0);
         _accelFieldLocal.Apply();
         RenderTexture.active = oldRenderTexture;
+
+        _lastFieldUpdate = Time.time;
     }
 
     public void ClearAccelerationField() {
@@ -177,6 +254,7 @@ public class Flock : MonoBehaviour
 
     void OnDestroy() {
         ClearAccelerationField();
+        _boidsPool.Dispose();
     }
 }
 
@@ -263,7 +341,7 @@ public class FlockEditor : Editor {
         EditorGUILayout.BeginHorizontal();
 
         if (GUILayout.Button("Refresh field")) {
-            flock.UpdateAccelerationField();
+            flock.RefreshAccelerationField();
             UnityEditor.SceneView.RepaintAll();
         }
 

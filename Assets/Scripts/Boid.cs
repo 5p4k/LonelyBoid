@@ -4,6 +4,12 @@ using UnityEngine;
 using UnityEditor;
 
 
+public struct BoidData {
+    public uint flockIndex;
+    public Vector2 position;
+    public Vector2 direction;
+    public float speed;
+}
 
 
 public class Boid : MonoBehaviour
@@ -12,6 +18,21 @@ public class Boid : MonoBehaviour
 
     [HideInInspector]
     public Flock flock = null;
+
+    public BoidData ToBufferData(uint flockIndex) {
+        var retval = new BoidData();
+        retval.flockIndex = flockIndex;
+        retval.position = transform.position;
+        retval.direction = transform.up;
+        retval.speed = speed;
+        return retval;
+    }
+
+    public void FromBufferData(BoidData data) {
+        transform.position = data.position;
+        transform.up = data.direction;
+        speed = data.speed;
+    }
 
     static void DrawSector(Transform transform, float radius, float angleTau, bool solid) {
         float angleDeg = angleTau * 360.0f;
@@ -27,6 +48,10 @@ public class Boid : MonoBehaviour
     }
 
     void OnDrawGizmosSelected() {
+        if (flock == null) {
+            return;
+        }
+
         bool active = Selection.activeGameObject == gameObject;
 
         Color color = Handles.color;
