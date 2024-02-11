@@ -184,3 +184,22 @@ public class BoidsContainer : MonoBehaviour
         }
     }
 }
+
+#if UNITY_EDITOR
+[CustomEditor(typeof(BoidsContainer))]
+public class BoidsContainerEditor : Editor {
+    public override void OnInspectorGUI() {
+        BoidsContainer container = target as BoidsContainer;
+
+        DrawDefaultInspector();
+
+        EditorGUILayout.Space();
+
+        if (GUILayout.Button("Add a new flock")) {
+            var existingFlockCount = container.GetComponentsInChildren<Flock>(true).Length;
+            GameObject empty = new GameObject("Flock " + (existingFlockCount + 1), typeof(Flock));
+            empty.transform.parent = container.transform;
+        }
+    }
+}
+#endif

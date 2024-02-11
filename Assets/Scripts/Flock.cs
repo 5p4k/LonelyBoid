@@ -38,10 +38,10 @@ public class Flock : MonoBehaviour
     [Header("Spawn")]
     public GameObject prefab;
     public float spawnFrequency = 3.0f;
-    public float spawnRadius = 5.0f;
+    public float spawnRadius = 7.0f;
     public uint maxCount = 40;
     public uint maxPoolCapacity = 40;
-    public float killRadius = 13.0f;
+    public float killRadius = 10.0f;
 
     [Header("Behaviour")]
     public float separationWeight = 2.0f;
