@@ -1,3 +1,9 @@
+#include <NoiseShader/Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl>
+
+static const float PI = 3.141592653589793f;
+
+float2 safe_normalize(float2 v);
+
 struct BoidData {
     uint flockIndex;
     float2 position;
@@ -38,8 +44,46 @@ struct FlockData {
     float killRadius;
 };
 
+struct ForceData
+{
+    uint type;
+    float intensity;
+    float2 position;
+    float falloffPower;
+    float spatialScale;
+    float temporalScale;
 
-static const float PI = 3.141592653589793f;
+    float2 _ComputeRadialForce(float2 at)
+    {
+        const float2 radialVector = at - position;
+        const float magnitude = intensity * pow(length(radialVector), falloffPower);
+        return normalize(radialVector) * magnitude;
+    }
+
+    float2 _ComputeTurbulentForce(float2 at, float time)
+    {
+        const float2 location = (at - position) * spatialScale;
+        const float3 inputToNoise = float3(location.x, location.y, time * temporalScale);
+        return intensity * SimplexNoiseGrad(inputToNoise).xy;
+    }
+
+    float2 Compute(float2 at, float time)
+    {
+        float2 retval = float2(0.f, 0.f);
+        switch (type)
+        {
+        case 1:
+            retval = _ComputeRadialForce(at);
+            break;
+        case 2:
+            retval = _ComputeTurbulentForce(at, time);
+            break;
+        default:
+            break;
+        }
+        return retval;
+    }
+};
 
 
 float2 clamp_magnitude(float2 v, float minMagnitude, float maxMagnitude) {
@@ -201,4 +245,3 @@ struct NeighborhoodDrivesCalculator {
         }
     }
 };
-

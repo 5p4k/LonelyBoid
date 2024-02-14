@@ -8,6 +8,11 @@ int boidCount;
 StructuredBuffer<FlockData> flockData;
 int flockIndex;
 
+StructuredBuffer<ForceData> forceData;
+int forceCount;
+
+float time;
+
 float4 textureWindow;
 int2 textureSize;
 
@@ -47,10 +52,16 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     float2 survivalDrive = ComputeSurvivalDrive(dummy, flock);
 
     // Compute the weighted acceleration from the drive
-    const float2 acceleration = flock.separationWeight * separationDrive
-                              + flock.alignmentWeight * alignmentDrive
-                              + flock.cohesionWeight * cohesionDrive
-                              + flock.survivalWeight * survivalDrive;
+    float2 acceleration = flock.separationWeight * separationDrive
+                        + flock.alignmentWeight * alignmentDrive
+                        + flock.cohesionWeight * cohesionDrive
+                        + flock.survivalWeight * survivalDrive;
+    
+    // Apply the external forces
+    for (uint k = 0; k < (uint)forceCount; ++k)
+    {
+        acceleration += forceData[k].Compute(position, time);
+    }
 
     textureOutput[id.xy] = acceleration;
 }

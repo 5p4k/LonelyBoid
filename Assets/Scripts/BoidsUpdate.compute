@@ -8,7 +8,11 @@ int boidCount;
 StructuredBuffer<FlockData> flockData;
 int flockCount;
 
+StructuredBuffer<ForceData> forceData;
+int forceCount;
+
 float deltaTime;
+float time;
 
 
 [numthreads(1024, 1, 1)]
@@ -35,10 +39,16 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
     float2 survivalDrive = ComputeSurvivalDrive(boid, flock);
 
     // Compute the weighted acceleration from the drive
-    const float2 acceleration = flock.separationWeight * separationDrive
-                              + flock.alignmentWeight * alignmentDrive
-                              + flock.cohesionWeight * cohesionDrive
-                              + flock.survivalWeight * survivalDrive;
+    float2 acceleration = flock.separationWeight * separationDrive
+                        + flock.alignmentWeight * alignmentDrive
+                        + flock.cohesionWeight * cohesionDrive
+                        + flock.survivalWeight * survivalDrive;
+
+    // Apply the external forces
+    for (uint k = 0; k < (uint)forceCount; ++k)
+    {
+        acceleration += forceData[k].Compute(boid.position, time);
+    }
 
     // Calculate the velocity update by accounting for max angular speed and max acceleration
     const float2 deltaVelocity = ComputeVelocityChange(

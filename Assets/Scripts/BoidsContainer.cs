@@ -15,15 +15,16 @@ public class BoidsContainer : MonoBehaviour
     Flock[] _flocks = null;
     FlockData[] _flockData = null;
     ComputeBuffer _flockDataBuffer = null;
+    
+    Force[] _forces = null;
+    ForceData[] _forceData = null;
+    ComputeBuffer _forceDataBuffer = null;
 
     void Start() {
-        ReloadFlocks();
+        Recache();
     }
 
     static void EnsureBuffer<T>(ref ComputeBuffer computeBuffer, ref T[] localBuffer, uint count) {
-        if (count == 0) {
-            return;
-        }
         if (localBuffer == null || localBuffer.Length < count) {
             localBuffer = new T[count];
         }
@@ -32,18 +33,21 @@ public class BoidsContainer : MonoBehaviour
                 computeBuffer.Release();
             }
             int size = System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
-            computeBuffer = new ComputeBuffer((int)count, size);
+            // Still create at least a 1-entry buffer otherwise we cannot set the compute shader up
+            computeBuffer = new ComputeBuffer((int)Mathf.Max(count, 1), size);
         }
     }
 
-    public void ReloadFlocks() {
+    public void Recache() {
         _flocks = GetComponentsInChildren<Flock>(true);
+        _forces = GetComponentsInChildren<Force>(true);
         uint boidsCount = 0;
         foreach (Flock flock in _flocks) {
             boidsCount += flock.maxCount;
         }
         EnsureBuffer<BoidData>(ref _boidDataBuffer, ref _boidData, boidsCount);
         EnsureBuffer<FlockData>(ref _flockDataBuffer, ref _flockData, (uint)_flocks.Length);
+        EnsureBuffer<ForceData>(ref _forceDataBuffer, ref _forceData, (uint)_forces.Length);
     }
 
     void Awake() {
@@ -77,6 +81,12 @@ public class BoidsContainer : MonoBehaviour
             }
             _flockData[flockIndex++] = flock.ToBufferData();
         }
+
+        uint forceIndex = 0;
+        foreach (Force force in _forces)
+        {
+            _forceData[forceIndex++] = force.ToBufferData();
+        } 
         return returnIndex;
     }
 
@@ -97,7 +107,7 @@ public class BoidsContainer : MonoBehaviour
         }
     }
 
-    void ComputeUpdate(uint boidCount, float deltaTime) {
+    void ComputeUpdate(uint boidCount, float time, float deltaTime) {
         if (boidCount == 0) {
             return;
         }
@@ -106,18 +116,22 @@ public class BoidsContainer : MonoBehaviour
 
         _boidDataBuffer.SetData(_boidData);
         _flockDataBuffer.SetData(_flockData);
+        _forceDataBuffer.SetData(_forceData);
 
         updateShader.SetBuffer(0, "boidData", _boidDataBuffer);
         updateShader.SetBuffer(0, "flockData", _flockDataBuffer);
+        updateShader.SetBuffer(0, "forceData", _forceDataBuffer);
 
         updateShader.SetInt("boidCount", (int)boidCount);
         updateShader.SetInt("flockCount", (int)_flockData.Length);
+        updateShader.SetInt("forceCount", (int)_forceData.Length);
+        
+        updateShader.SetFloat("time", time);
         updateShader.SetFloat("deltaTime", deltaTime);
 
         updateShader.Dispatch(0, Mathf.Max(1, Mathf.CeilToInt(boidCount / 1024.0f)), 1, 1);
 
         _boidDataBuffer.GetData(_boidData);
-        _flockDataBuffer.GetData(_flockData);
     }
 
 
@@ -125,7 +139,7 @@ public class BoidsContainer : MonoBehaviour
         uint boidCount = 0;
 
         GeometryToBuffers(out boidCount);
-        ComputeUpdate(boidCount, Time.deltaTime);
+        ComputeUpdate(boidCount, Time.time, Time.deltaTime);
         BuffersToGeometry(boidCount);
 
         // Post update actions
@@ -139,7 +153,7 @@ public class BoidsContainer : MonoBehaviour
         bool didReload = false;
         if (_flockData == null) {
             didReload = true;
-            ReloadFlocks();
+            Recache();
         }
 
         uint boidCount = 0;
@@ -147,7 +161,7 @@ public class BoidsContainer : MonoBehaviour
 
         if (flockIndex < 0 && !didReload) {
             didReload = true;
-            ReloadFlocks();
+            Recache();
             // Retry
             flockIndex = GeometryToBuffers(out boidCount, flock);
         }
@@ -158,12 +172,17 @@ public class BoidsContainer : MonoBehaviour
 
         _boidDataBuffer.SetData(_boidData);
         _flockDataBuffer.SetData(_flockData);
+        _forceDataBuffer.SetData(_forceData);
 
         fieldShader.SetBuffer(0, "boidData", _boidDataBuffer);
         fieldShader.SetBuffer(0, "flockData", _flockDataBuffer);
+        fieldShader.SetBuffer(0, "forceData", _forceDataBuffer);
 
         fieldShader.SetInt("boidCount", (int)boidCount);
         fieldShader.SetInt("flockIndex", flockIndex);
+        fieldShader.SetInt("forceCount", (int)_forceData.Length);
+        
+        fieldShader.SetFloat("time", Time.time);
 
         float[] texWin = new float[4] {window.xMin, window.yMin, window.width, window.height};
         int[] texSz = new int[2] {texture.width, texture.height};
@@ -195,11 +214,21 @@ public class BoidsContainerEditor : Editor {
 
         EditorGUILayout.Space();
 
-        if (GUILayout.Button("Add a new flock")) {
+        EditorGUILayout.BeginHorizontal();
+
+        if (GUILayout.Button("New flock")) {
             var existingFlockCount = container.GetComponentsInChildren<Flock>(true).Length;
-            GameObject empty = new GameObject("Flock " + (existingFlockCount + 1), typeof(Flock));
-            empty.transform.parent = container.transform;
+            GameObject emptyFlock = new GameObject("Flock " + (existingFlockCount + 1), typeof(Flock));
+            emptyFlock.transform.parent = container.transform;
         }
+        
+        if (GUILayout.Button("New force")) {
+            var existingForceCount = container.GetComponentsInChildren<Force>(true).Length;
+            GameObject emptyForce = new GameObject("Force " + (existingForceCount + 1), typeof(Force));
+            emptyForce.transform.parent = container.transform;
+        }
+        
+        EditorGUILayout.EndHorizontal();
     }
 }
 #endif
