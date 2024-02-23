@@ -1,3 +1,6 @@
+#ifndef BOIDSLIBRARY_CGINC
+#define BOIDSLIBRARY_CGINC
+
 #include <NoiseShader/Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl>
 
 static const float PI = 3.141592653589793f;
@@ -245,3 +248,5 @@ struct NeighborhoodDrivesCalculator {
         }
     }
 };
+
+#endif  
