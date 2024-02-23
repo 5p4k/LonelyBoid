@@ -9,7 +9,17 @@ public class BoidsContainer : MonoBehaviour
     public ComputeShader fieldShader;
 
     private static readonly int TimeID = Shader.PropertyToID("time");
-    private static readonly int DeltaTimeID = Shader.PropertyToID("deltaTime");
+    private static readonly int DeltaTimeID = Shader.PropertyToID("delta_time");
+    private static readonly int ForceIndexID = Shader.PropertyToID("force_index");
+    private static readonly int TextureWindowID = Shader.PropertyToID("texture_window");
+    private static readonly int TextureSizeID = Shader.PropertyToID("texture_size");
+    private static readonly int TextureOutputID = Shader.PropertyToID("texture_output");
+    private static readonly int ForceDataID = Shader.PropertyToID("force_data");
+    private static readonly int ForceCountID = Shader.PropertyToID("force_count");
+    private static readonly int FlockDataID = Shader.PropertyToID("flock_data");
+    private static readonly int FlockCountID = Shader.PropertyToID("flock_count");
+    private static readonly int BoidDataID = Shader.PropertyToID("boid_data");
+    private static readonly int BoidCountID = Shader.PropertyToID("boid_count");
 
     private readonly DualBuffer<BoidData> _boidBuffer = new();
 
@@ -129,9 +139,9 @@ public class BoidsContainer : MonoBehaviour
         PopulateBoidsBuffer(boidsAllocSize, out var boidsCount);
         PopulateForcesBuffer();
 
-        _flockBuffer.Bind(updateShader, 0, "flockData", "flockCount");
-        _boidBuffer.Bind(updateShader, 0, "boidData", boidsCount, "boidCount");
-        _forceBuffer.Bind(updateShader, 0, "forceData", "forceCount");
+        _flockBuffer.Bind(updateShader, 0, FlockDataID, FlockCountID);
+        _boidBuffer.Bind(updateShader, 0, BoidDataID, boidsCount, BoidCountID);
+        _forceBuffer.Bind(updateShader, 0, ForceDataID, ForceCountID);
 
         updateShader.SetFloat(TimeID, Time.time);
         updateShader.SetFloat(DeltaTimeID, Time.deltaTime);
@@ -272,14 +282,7 @@ public class DualBuffer<T>
         _computeBuffer = new ComputeBuffer((int)Mathf.Max(allocSize, 1), EntrySize);
     }
 
-    public void Bind(ComputeShader shader, int kernelIndex, string fieldName)
-    {
-        Bind(shader, kernelIndex, fieldName, AllocSize);
-    }
-
-
-    // ReSharper disable once MemberCanBePrivate.Global
-    public void Bind(ComputeShader shader, int kernelIndex, string fieldName, uint useSize)
+    public void Bind(ComputeShader shader, int kernelIndex, int fieldID)
     {
         if (_computeBuffer == null)
         {
@@ -287,18 +290,19 @@ public class DualBuffer<T>
         }
 
         _computeBuffer.SetData(Data);
-        shader.SetBuffer(kernelIndex, fieldName, _computeBuffer);
+        shader.SetBuffer(kernelIndex, fieldID, _computeBuffer);
     }
 
-    public void Bind(ComputeShader shader, int kernelIndex, string fieldName, uint useSize, string useSizeFieldName)
+    public void Bind(ComputeShader shader, int kernelIndex, int fieldID, uint useSize, int useSizeFieldID)
     {
-        Bind(shader, kernelIndex, fieldName, useSize);
-        shader.SetInt(useSizeFieldName, (int)useSize);
+        Bind(shader, kernelIndex, fieldID);
+        shader.SetInt(useSizeFieldID, (int)useSize);
     }
 
-    public void Bind(ComputeShader shader, int kernelIndex, string fieldName, string useSizeFieldName)
+    public void Bind(ComputeShader shader, int kernelIndex, int fieldID, int allocSizeFieldID)
     {
-        Bind(shader, kernelIndex, fieldName, AllocSize, useSizeFieldName);
+        Bind(shader, kernelIndex, fieldID);
+        shader.SetInt(allocSizeFieldID, (int)AllocSize);
     }
 
     public void ToLocal()

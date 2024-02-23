@@ -2,16 +2,16 @@
 
 #include "BoidsLibrary.cginc"
 
-RWStructuredBuffer<BoidData> boidData;
-int boidCount;
+RWStructuredBuffer<BoidData> boid_data;
+int boid_count;
 
-StructuredBuffer<FlockData> flockData;
-int flockCount;
+StructuredBuffer<FlockData> flock_data;
+int flock_count;
 
-StructuredBuffer<ForceData> forceData;
-int forceCount;
+StructuredBuffer<ForceData> force_data;
+int force_count;
 
-float deltaTime;
+float delta_time;
 float time;
 
 
@@ -20,17 +20,17 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
     const int i = id.x;
 
     // Extract current boid
-    BoidData boid = boidData[i];
-    const FlockData flock = flockData[boid.flockIndex];
+    BoidData boid = boid_data[i];
+    const FlockData flock = flock_data[boid.flockIndex];
 
     // Compute neighborhood drives: 
     float2 cohesionDrive, separationDrive, alignmentDrive;
 
     NeighborhoodDrivesCalculator driveCalc;
     driveCalc.Initialize(boid, flock);
-    for (int j = 0; j < boidCount; ++j) {
+    for (int j = 0; j < boid_count; ++j) {
         if (i != j) {
-            driveCalc.Update(boidData[j]);
+            driveCalc.Update(boid_data[j]);
         }
     }
     driveCalc.Compute(cohesionDrive, separationDrive, alignmentDrive);
@@ -45,15 +45,16 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
                         + flock.survivalWeight * survivalDrive;
 
     // Apply the external forces
-    for (uint k = 0; k < (uint)forceCount; ++k)
+    for (uint k = 0; k < (uint)force_count; ++k)
     {
-        acceleration += forceData[k].Compute(boid.position, time);
+        ForceData force = force_data[k];
+        acceleration += force.Compute(boid.position, time);
     }
 
     // Calculate the velocity update by accounting for max angular speed and max acceleration
     const float2 deltaVelocity = ComputeVelocityChange(
-        deltaTime, boid.direction, boid.speed, acceleration,
-        flock.maxAcceleration, flock.maxAngularSpeedTau * deltaTime * 2.f * PI
+        delta_time, boid.direction, boid.speed, acceleration,
+        flock.maxAcceleration, flock.maxAngularSpeedTau * delta_time * 2.f * PI
     );
 
     // Account for velocity limit and apply the velocity update
@@ -61,8 +62,8 @@ void CSMain (uint3 id : SV_DispatchThreadID) {
     boid.setVelocity(velocity);
 
     // Compute the position update
-    boid.position += velocity * deltaTime;
+    boid.position += velocity * delta_time;
     
     // Copy back, there is no references in HLSL
-    boidData[i] = boid;
+    boid_data[i] = boid;
 }

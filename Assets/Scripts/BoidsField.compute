@@ -2,29 +2,29 @@
 
 #include "BoidsLibrary.cginc"
 
-StructuredBuffer<BoidData> boidData;
-int boidCount;
+StructuredBuffer<BoidData> boid_data;
+int boid_count;
 
-StructuredBuffer<FlockData> flockData;
-int flockIndex;
+StructuredBuffer<FlockData> flock_data;
+int flock_index;
 
-StructuredBuffer<ForceData> forceData;
-int forceCount;
+StructuredBuffer<ForceData> force_data;
+int force_count;
 
 float time;
 
-float4 textureWindow;
-int2 textureSize;
+float4 texture_window;
+int2 texture_size;
 
-RWTexture2D<float2> textureOutput;
+RWTexture2D<float2> texture_output;
 
 
 [numthreads(8,8,1)]
 void CSMain(uint3 id : SV_DispatchThreadID) {
-    const float2 pixelSize = float2(textureWindow.z / float(textureSize.x), textureWindow.w / float(textureSize.y));
-    const float2 position = 0.5f * pixelSize + textureWindow.xy + pixelSize * id.xy;
+    const float2 pixelSize = float2(texture_window.z / float(texture_size.x), texture_window.w / float(texture_size.y));
+    const float2 position = 0.5f * pixelSize + texture_window.xy + pixelSize * id.xy;
 
-    FlockData flock = flockData[flockIndex];
+    FlockData flock = flock_data[flock_index];
 
     // Patch the flock data to allow 360 degrees view and avoidance to remove
     // dependency from orientation
@@ -33,7 +33,7 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
 
     // A dummy boid that is used to derive the drives
     BoidData dummy;
-    dummy.flockIndex = flockIndex;
+    dummy.flockIndex = flock_index;
     dummy.position = position;
     dummy.direction = float2(0, 1);
     dummy.speed = 1.f;
@@ -43,8 +43,8 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
 
     NeighborhoodDrivesCalculator driveCalc;
     driveCalc.Initialize(dummy, flock);
-    for (int i = 0; i < boidCount; ++i) {
-        driveCalc.Update(boidData[i]);
+    for (int i = 0; i < boid_count; ++i) {
+        driveCalc.Update(boid_data[i]);
     }
     driveCalc.Compute(cohesionDrive, separationDrive, alignmentDrive);
 
@@ -58,10 +58,11 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
                         + flock.survivalWeight * survivalDrive;
     
     // Apply the external forces
-    for (uint k = 0; k < (uint)forceCount; ++k)
+    for (uint k = 0; k < (uint)force_count; ++k)
     {
-        acceleration += forceData[k].Compute(position, time);
+        ForceData force = force_data[k];
+        acceleration += force.Compute(position, time);
     }
 
-    textureOutput[id.xy] = acceleration;
+    texture_output[id.xy] = acceleration;
 }
