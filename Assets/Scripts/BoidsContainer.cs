@@ -7,6 +7,7 @@ public class BoidsContainer : MonoBehaviour
 {
     [Header("Shaders")] public ComputeShader updateShader;
     public ComputeShader fieldShader;
+    public ComputeShader forceFieldShader;
 
     private static readonly int TimeID = Shader.PropertyToID("time");
     private static readonly int DeltaTimeID = Shader.PropertyToID("delta_time");
@@ -129,6 +130,12 @@ public class BoidsContainer : MonoBehaviour
             fieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
                 "Assets/Scripts/BoidsField.compute", typeof(ComputeShader));
         }
+
+        if (forceFieldShader == null)
+        {
+            forceFieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
+                "Assets/Scripts/ForceField.compute", typeof(ComputeShader));
+        }
     }
 #endif
 
@@ -162,6 +169,29 @@ public class BoidsContainer : MonoBehaviour
             flock.KillStrayBoids();
             flock.SpawnIfNeeded();
         }
+    }
+
+    public void ComputeField(Force force, Rect window, RenderTexture texture)
+    {
+        var forceIndex = Array.IndexOf(_forces, force);
+        if (forceIndex < 0) return;
+
+        var texWin = new[] { window.xMin, window.yMin, window.width, window.height };
+        var texSz = new[] { texture.width, texture.height };
+
+        PopulateForcesBuffer();
+
+        _forceBuffer.Bind(forceFieldShader, 0, ForceDataID);
+
+        forceFieldShader.SetInt(ForceIndexID, forceIndex);
+        forceFieldShader.SetFloat(TimeID, Time.time);
+        forceFieldShader.SetFloat(DeltaTimeID, Time.deltaTime);
+
+        forceFieldShader.SetFloats(TextureWindowID, texWin);
+        forceFieldShader.SetInts(TextureSizeID, texSz);
+        forceFieldShader.SetTexture(0, TextureOutputID, texture);
+
+        forceFieldShader.Dispatch(0, texture.width, texture.height, 1);
     }
 
     public void ComputeAccelerationField(Flock flock, Rect window, RenderTexture texture)

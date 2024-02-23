@@ -1,0 +1,24 @@
+#pragma kernel main
+
+#include "BoidsLibrary.cginc"
+
+StructuredBuffer<ForceData> force_data;
+int force_index;
+
+float time;
+
+float4 texture_window;
+int2 texture_size;
+
+RWTexture2D<float2> texture_output;
+
+
+[numthreads(8,8,1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    const float2 px_size = float2(texture_window.z / float(texture_size.x), texture_window.w / float(texture_size.y));
+    const float2 position = 0.5f * px_size + texture_window.xy + px_size * id.xy;
+
+    ForceData force = force_data[force_index];
+    texture_output[id.xy] = force.Compute(position, time);
+}
