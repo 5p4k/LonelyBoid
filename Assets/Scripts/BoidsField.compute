@@ -1,4 +1,4 @@
-#pragma kernel CSMain
+#pragma kernel main
 
 #include "BoidsLibrary.cginc"
 
@@ -20,9 +20,10 @@ RWTexture2D<float2> texture_output;
 
 
 [numthreads(8,8,1)]
-void CSMain(uint3 id : SV_DispatchThreadID) {
-    const float2 pixelSize = float2(texture_window.z / float(texture_size.x), texture_window.w / float(texture_size.y));
-    const float2 position = 0.5f * pixelSize + texture_window.xy + pixelSize * id.xy;
+void main(uint3 id : SV_DispatchThreadID)
+{
+    const float2 px_size = float2(texture_window.z / float(texture_size.x), texture_window.w / float(texture_size.y));
+    const float2 position = 0.5f * px_size + texture_window.xy + px_size * id.xy;
 
     FlockData flock = flock_data[flock_index];
 
@@ -39,24 +40,25 @@ void CSMain(uint3 id : SV_DispatchThreadID) {
     dummy.speed = 1.f;
 
     // Compute neighborhood drives: 
-    float2 cohesionDrive, separationDrive, alignmentDrive;
+    float2 cohesion_drive, separation_drive, alignment_drive;
 
     NeighborhoodDrivesCalculator driveCalc;
     driveCalc.Initialize(dummy, flock);
-    for (int i = 0; i < boid_count; ++i) {
+    for (int i = 0; i < boid_count; ++i)
+    {
         driveCalc.Update(boid_data[i]);
     }
-    driveCalc.Compute(cohesionDrive, separationDrive, alignmentDrive);
+    driveCalc.Compute(cohesion_drive, separation_drive, alignment_drive);
 
     // Compute force field drives:
-    float2 survivalDrive = ComputeSurvivalDrive(dummy, flock);
+    const float2 survival_drive = ComputeSurvivalDrive(dummy, flock);
 
     // Compute the weighted acceleration from the drive
-    float2 acceleration = flock.separationWeight * separationDrive
-                        + flock.alignmentWeight * alignmentDrive
-                        + flock.cohesionWeight * cohesionDrive
-                        + flock.survivalWeight * survivalDrive;
-    
+    float2 acceleration = flock.separationWeight * separation_drive
+        + flock.alignmentWeight * alignment_drive
+        + flock.cohesionWeight * cohesion_drive
+        + flock.survivalWeight * survival_drive;
+
     // Apply the external forces
     for (uint k = 0; k < (uint)force_count; ++k)
     {
