@@ -6,12 +6,13 @@ using UnityEditor;
 public class BoidsContainer : MonoBehaviour
 {
     [Header("Shaders")] public ComputeShader updateShader;
-    public ComputeShader fieldShader;
+    public ComputeShader boidsFieldShader;
     public ComputeShader forceFieldShader;
 
     private static readonly int TimeID = Shader.PropertyToID("time");
     private static readonly int DeltaTimeID = Shader.PropertyToID("delta_time");
     private static readonly int ForceIndexID = Shader.PropertyToID("force_index");
+    private static readonly int FlockIndexID = Shader.PropertyToID("flock_index");
     private static readonly int TextureWindowID = Shader.PropertyToID("texture_window");
     private static readonly int TextureSizeID = Shader.PropertyToID("texture_size");
     private static readonly int TextureOutputID = Shader.PropertyToID("texture_output");
@@ -125,9 +126,9 @@ public class BoidsContainer : MonoBehaviour
                 "Assets/Scripts/BoidsUpdate.compute", typeof(ComputeShader));
         }
 
-        if (fieldShader == null)
+        if (boidsFieldShader == null)
         {
-            fieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
+            boidsFieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
                 "Assets/Scripts/BoidsField.compute", typeof(ComputeShader));
         }
 
@@ -141,7 +142,6 @@ public class BoidsContainer : MonoBehaviour
 
     private void ComputeBoidsUpdate()
     {
-        // Update all buffers
         PopulateFlocksBuffer(out var boidsAllocSize);
         PopulateBoidsBuffer(boidsAllocSize, out var boidsCount);
         PopulateForcesBuffer();
@@ -171,27 +171,51 @@ public class BoidsContainer : MonoBehaviour
         }
     }
 
-    public void ComputeField(Force force, Rect window, RenderTexture texture)
+    private static void BindTexture(ComputeShader shader, Texture texture, Rect window)
+    {
+        
+        var texWin = new[] { window.xMin, window.yMin, window.width, window.height };
+        var texSz = new[] { texture.width, texture.height };
+
+        shader.SetFloats(TextureWindowID, texWin);
+        shader.SetInts(TextureSizeID, texSz);
+        shader.SetTexture(0, TextureOutputID, texture);
+    }
+
+    public void ComputeField(Force force, Texture texture, Rect window)
     {
         var forceIndex = Array.IndexOf(_forces, force);
         if (forceIndex < 0) return;
 
-        var texWin = new[] { window.xMin, window.yMin, window.width, window.height };
-        var texSz = new[] { texture.width, texture.height };
-
         PopulateForcesBuffer();
 
         _forceBuffer.Bind(forceFieldShader, 0, ForceDataID);
+        BindTexture(forceFieldShader, texture, window);
 
         forceFieldShader.SetInt(ForceIndexID, forceIndex);
         forceFieldShader.SetFloat(TimeID, Time.time);
-        forceFieldShader.SetFloat(DeltaTimeID, Time.deltaTime);
-
-        forceFieldShader.SetFloats(TextureWindowID, texWin);
-        forceFieldShader.SetInts(TextureSizeID, texSz);
-        forceFieldShader.SetTexture(0, TextureOutputID, texture);
 
         forceFieldShader.Dispatch(0, texture.width, texture.height, 1);
+    }
+
+    public void ComputeField(Flock flock, Texture texture, Rect window)
+    {
+        var flockIndex = Array.IndexOf(_flocks, flock);
+        if (flockIndex < 0) return;
+        
+        PopulateFlocksBuffer(out var boidsAllocSize);
+        PopulateBoidsBuffer(boidsAllocSize, out var boidsCount);
+        PopulateForcesBuffer();
+
+        _flockBuffer.Bind(boidsFieldShader, 0, FlockDataID, FlockCountID);
+        _boidBuffer.Bind(boidsFieldShader, 0, BoidDataID, boidsCount, BoidCountID);
+        _forceBuffer.Bind(boidsFieldShader, 0, ForceDataID, ForceCountID);
+        BindTexture(boidsFieldShader, texture, window);
+
+        boidsFieldShader.SetInt(FlockIndexID, flockIndex);
+        boidsFieldShader.SetFloat(TimeID, Time.time);
+
+        boidsFieldShader.Dispatch(0, texture.width, texture.height, 1);
     }
 
     public void ComputeAccelerationField(Flock flock, Rect window, RenderTexture texture)
@@ -224,24 +248,24 @@ public class BoidsContainer : MonoBehaviour
         // _flockDataBuffer.SetData(_flockData);
         // _forceDataBuffer.SetData(_forceData);
         //
-        // fieldShader.SetBuffer(0, "boidData", _boidDataBuffer);
-        // fieldShader.SetBuffer(0, "flockData", _flockDataBuffer);
-        // fieldShader.SetBuffer(0, "forceData", _forceDataBuffer);
+        // boidsFieldShader.SetBuffer(0, "boidData", _boidDataBuffer);
+        // boidsFieldShader.SetBuffer(0, "flockData", _flockDataBuffer);
+        // boidsFieldShader.SetBuffer(0, "forceData", _forceDataBuffer);
         //
-        // fieldShader.SetInt("boidCount", (int)boidCount);
-        // fieldShader.SetInt("flockIndex", flockIndex);
-        // fieldShader.SetInt("forceCount", (int)_forceData.Length);
+        // boidsFieldShader.SetInt("boidCount", (int)boidCount);
+        // boidsFieldShader.SetInt("flockIndex", flockIndex);
+        // boidsFieldShader.SetInt("forceCount", (int)_forceData.Length);
         //
-        // fieldShader.SetFloat("time", Time.time);
+        // boidsFieldShader.SetFloat("time", Time.time);
         //
         // float[] texWin = new float[4] { window.xMin, window.yMin, window.width, window.height };
         // int[] texSz = new int[2] { texture.width, texture.height };
         //
-        // fieldShader.SetFloats("textureWindow", texWin);
-        // fieldShader.SetInts("textureSize", texSz);
+        // boidsFieldShader.SetFloats("textureWindow", texWin);
+        // boidsFieldShader.SetInts("textureSize", texSz);
         //
-        // fieldShader.SetTexture(0, "textureOutput", texture);
-        // fieldShader.Dispatch(0, texture.width, texture.height, 1);
+        // boidsFieldShader.SetTexture(0, "textureOutput", texture);
+        // boidsFieldShader.Dispatch(0, texture.width, texture.height, 1);
     }
 
 #if UNITY_EDITOR
