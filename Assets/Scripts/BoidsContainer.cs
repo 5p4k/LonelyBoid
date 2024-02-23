@@ -122,19 +122,6 @@ public class BoidsContainer : MonoBehaviour
     }
 #endif
 
-    private void CachePropertyIDs()
-    {
-        // if (_timeID < 0)
-        // {
-        //     _timeID = Shader.PropertyToID("time");
-        // }
-        //
-        // if (_deltaTimeID < 0)
-        // {
-        //     _deltaTimeID = Shader.PropertyToID("deltaTime");
-        // }
-    }
-
     private void ComputeBoidsUpdate()
     {
         // Update all buffers
@@ -145,8 +132,6 @@ public class BoidsContainer : MonoBehaviour
         _flockBuffer.Bind(updateShader, 0, "flockData", "flockCount");
         _boidBuffer.Bind(updateShader, 0, "boidData", boidsCount, "boidCount");
         _forceBuffer.Bind(updateShader, 0, "forceData", "forceCount");
-
-        CachePropertyIDs();
 
         updateShader.SetFloat(TimeID, Time.time);
         updateShader.SetFloat(DeltaTimeID, Time.deltaTime);
