@@ -9,6 +9,7 @@ public class BoidsContainer : MonoBehaviour
 {
     [Header("Shaders")] public ComputeShader updateShader;
     public ComputeShader boidsFlowFieldShader;
+    public ComputeShader forceFlowFieldShader;
 
     private static readonly int TimeID = Shader.PropertyToID("time");
     private static readonly int DeltaTimeID = Shader.PropertyToID("delta_time");
@@ -31,13 +32,14 @@ public class BoidsContainer : MonoBehaviour
     private Force[] _forces;
     private readonly DualBuffer<ForceData> _forceBuffer = new();
 
-    private readonly DualBuffer<Vector2> _orbitsBuffer = new();
 
-    [Header("Visualization")] public uint orbitLength = 10;
-    public float orbitDensity = 10.0f;
-    public float orbitTimeStep = 0.1f;
+    [Header("Visualization")] public uint orbitLength = 5;
+    public uint orbitDensity = 20;
+    public float orbitTimeStep = 0.05f;
     public bool liveUpdate = true;
 
+    private readonly DualBuffer<Vector2> _orbitsBuffer = new();
+    
     private uint _orbitCount;
     private static Rect _lastEditorScreen = Rect.zero;
 
@@ -161,6 +163,12 @@ public class BoidsContainer : MonoBehaviour
             boidsFlowFieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
                 "Assets/Scripts/BoidsFlowField.compute", typeof(ComputeShader));
         }
+
+        if (forceFlowFieldShader == null)
+        {
+            forceFlowFieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
+                "Assets/Scripts/ForceFlowField.compute", typeof(ComputeShader));
+        }
     }
 
     private void OnValidate()
@@ -185,12 +193,16 @@ public class BoidsContainer : MonoBehaviour
         UpdateBoids(boidsCount);
     }
     
-    private void ComputeFlowField(uint flockIndex, uint boidsCount, uint orbitsCount)
+    private void ComputeFlockFlowField(uint flockIndex, uint boidsCount, uint orbitsCount)
     {
+        if (!boidsFlowFieldShader) return;
+        
         _flockBuffer.Bind(boidsFlowFieldShader, 0, FlockDataID, FlockCountID);
         _boidBuffer.Bind(boidsFlowFieldShader, 0, BoidDataID, boidsCount, BoidCountID);
-        _forceBuffer.Bind(boidsFlowFieldShader, 0, ForceDataID, ForceCountID);
+        _forceBuffer.Bind(boidsFlowFieldShader, 0, ForceDataID);
         _orbitsBuffer.Bind(boidsFlowFieldShader, 0, OrbitsID);
+
+        boidsFlowFieldShader.SetInt(ForceCountID, _flocks[flockIndex].includeForces ? _forces.Length : 0);
 
         boidsFlowFieldShader.SetInt(FlockIndexID, (int)flockIndex);
         boidsFlowFieldShader.SetFloat(TimeID, Time.time);
@@ -201,6 +213,39 @@ public class BoidsContainer : MonoBehaviour
 
         _orbitsBuffer.ToLocal();
     }
+    
+    private void ComputeForceFlowField(uint forceIndex, uint orbitsCount)
+    {
+        if (!forceFlowFieldShader) return;
+        
+        _forceBuffer.Bind(forceFlowFieldShader, 0, ForceDataID);
+        _orbitsBuffer.Bind(forceFlowFieldShader, 0, OrbitsID);
+
+        forceFlowFieldShader.SetInt(ForceIndexID, (int)forceIndex);
+        forceFlowFieldShader.SetFloat(TimeID, Time.time);
+        forceFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
+        forceFlowFieldShader.SetInt(StrideID, (int)orbitLength);
+
+        forceFlowFieldShader.Dispatch(0, (int)orbitsCount, 1, 1);
+
+        _orbitsBuffer.ToLocal();
+    }
+
+    private void ComputeFlowField(Rect window, uint boidsCount)
+    {
+        if (_selectedFlockIndex < 0 && _selectedForceIndex < 0) return;
+        PopulateOrbitsBuffer(window, out _orbitCount);
+        
+        if (_selectedForceIndex >= 0)
+        {
+            ComputeForceFlowField((uint)_selectedForceIndex, _orbitCount);
+        }
+        else if (_selectedFlockIndex >= 0)
+        {
+            ComputeFlockFlowField((uint)_selectedFlockIndex, boidsCount, _orbitCount);
+        }
+    }
+    
 
     private void Update()
     {
@@ -221,8 +266,7 @@ public class BoidsContainer : MonoBehaviour
         if (!liveUpdate) return;
 
         BoidsContainerEditor.EditorScreenWindowChanged(out var window);
-        PopulateOrbitsBuffer(window, out _orbitCount);
-        ComputeFlowField(0, boidsCount, _orbitCount);
+        ComputeFlowField(window, boidsCount);
 #endif
     }
     
@@ -239,7 +283,7 @@ public class BoidsContainer : MonoBehaviour
         PopulateForcesBuffer();
         PopulateOrbitsBuffer(window, out _orbitCount);
 
-        ComputeFlowField(0, boidsCount, _orbitCount);
+        ComputeFlockFlowField(0, boidsCount, _orbitCount);
     }
 
 #if UNITY_EDITOR

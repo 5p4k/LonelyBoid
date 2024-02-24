@@ -248,9 +248,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   updateShader: {fileID: 7200000, guid: f802b9696f7775dd191cd73a03762650, type: 3}
   boidsFlowFieldShader: {fileID: 7200000, guid: a18abaac565e4485ab67febb1f0a61bd, type: 3}
-  orbitLength: 3
+  orbitLength: 5
   orbitDensity: 20
-  orbitTimeStep: 0.1
+  orbitTimeStep: 0.05
   liveUpdate: 1
 --- !u!4 &520534153
 Transform:

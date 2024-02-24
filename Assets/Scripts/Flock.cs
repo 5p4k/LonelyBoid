@@ -64,6 +64,8 @@ public class Flock : MonoBehaviour
     [HideInInspector]
     public SortedSet<Boid> boids = new SortedSet<Boid>(new BoidComparer());
 
+    [Header("Visualization")] public bool includeForces = true;
+
     float _lastSpawn = 0.0f;
 
     ObjectPool<Boid> _boidsPool;

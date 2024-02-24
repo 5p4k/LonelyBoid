@@ -17,14 +17,15 @@ int stride;
 
 RWStructuredBuffer<float2> orbits;
 
-float2 compute_flow_field_acceleration(const FlockData flock, const float2 position, const float local_time)
+float2 compute_flow_field_acceleration(const FlockData flock, const float2 position, const float2 direction,
+    const float local_time)
 {
     
     // A dummy boid that is used to derive the drives
     BoidData dummy;
     dummy.flockIndex = flock_index;
     dummy.position = position;
-    dummy.direction = float2(0, 1);
+    dummy.direction = direction;
     dummy.speed = 1.f;
 
     // Compute neighborhood drives: 
@@ -57,7 +58,7 @@ float2 compute_flow_field_acceleration(const FlockData flock, const float2 posit
     return acceleration;
 }
 
-[numthreads(1024,1,1)]
+[numthreads(1,1,1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
     FlockData flock = flock_data[flock_index];
@@ -67,11 +68,13 @@ void main(uint3 id : SV_DispatchThreadID)
     flock.avoidAngleTau = 1.f;
 
     float2 position = orbits[id.x * stride];
+    float2 direction = float2(0, 1);
     for (int di = 0; di < stride - 1; ++di)
     {
         const float local_time = time + float(di) * delta_time;
-        const float2 acceleration = compute_flow_field_acceleration(flock, position, local_time);
+        const float2 acceleration = compute_flow_field_acceleration(flock, position, direction, local_time);
         position += acceleration * delta_time;
+        direction = normalize(acceleration);
 
         orbits[id.x * stride + di + 1] = position;
     }

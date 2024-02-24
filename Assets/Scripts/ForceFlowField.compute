@@ -1,0 +1,28 @@
+#pragma kernel main
+
+#include "BoidsLibrary.cginc"
+
+StructuredBuffer<ForceData> force_data;
+int force_index;
+
+float time;
+float delta_time;
+int stride;
+
+RWStructuredBuffer<float2> orbits;
+
+[numthreads(1,1,1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    ForceData force = force_data[force_index];
+    
+    float2 position = orbits[id.x * stride];
+    for (int di = 0; di < stride - 1; ++di)
+    {
+        const float local_time = time + float(di) * delta_time;
+        const float2 acceleration = force.Compute(position, local_time);
+        position += acceleration * delta_time;
+
+        orbits[id.x * stride + di + 1] = position;
+    }
+}
