@@ -1,0 +1,78 @@
+#pragma kernel main
+
+#include "BoidsLibrary.cginc"
+
+StructuredBuffer<BoidData> boid_data;
+int boid_count;
+
+StructuredBuffer<FlockData> flock_data;
+int flock_index;
+
+StructuredBuffer<ForceData> force_data;
+int force_count;
+
+float time;
+float delta_time;
+int stride;
+
+RWStructuredBuffer<float2> orbits;
+
+float2 compute_flow_field_acceleration(const FlockData flock, const float2 position, const float local_time)
+{
+    
+    // A dummy boid that is used to derive the drives
+    BoidData dummy;
+    dummy.flockIndex = flock_index;
+    dummy.position = position;
+    dummy.direction = float2(0, 1);
+    dummy.speed = 1.f;
+
+    // Compute neighborhood drives: 
+    float2 cohesion_drive, separation_drive, alignment_drive;
+
+    NeighborhoodDrivesCalculator driveCalc;
+    driveCalc.Initialize(dummy, flock);
+    for (int i = 0; i < boid_count; ++i)
+    {
+        driveCalc.Update(boid_data[i]);
+    }
+    driveCalc.Compute(cohesion_drive, separation_drive, alignment_drive);
+
+    // Compute force field drives:
+    const float2 survival_drive = ComputeSurvivalDrive(dummy, flock);
+
+    // Compute the weighted acceleration from the drive
+    float2 acceleration = flock.separationWeight * separation_drive
+        + flock.alignmentWeight * alignment_drive
+        + flock.cohesionWeight * cohesion_drive
+        + flock.survivalWeight * survival_drive;
+
+    // Apply the external forces
+    for (uint k = 0; k < (uint)force_count; ++k)
+    {
+        ForceData force = force_data[k];
+        acceleration += force.Compute(position, local_time);
+    }
+
+    return acceleration;
+}
+
+[numthreads(1024,1,1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    FlockData flock = flock_data[flock_index];
+
+    // Patch the flock data to allow 360 degrees view and avoidance to remove dependency from orientation
+    flock.viewAngleTau = 1.f;
+    flock.avoidAngleTau = 1.f;
+
+    float2 position = orbits[id.x * stride];
+    for (int di = 0; di < stride - 1; ++di)
+    {
+        const float local_time = time + float(di) * delta_time;
+        const float2 acceleration = compute_flow_field_acceleration(flock, position, local_time);
+        position += acceleration * delta_time;
+
+        orbits[id.x * stride + di + 1] = position;
+    }
+}
