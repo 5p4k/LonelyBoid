@@ -1,10 +1,6 @@
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.Assertions;
-using Debug = System.Diagnostics.Debug;
 
 
 public enum ForceType
@@ -15,12 +11,12 @@ public enum ForceType
 
 public struct ForceData
 {
-    public uint type;
-    public float intensity;
-    public Vector2 position;
-    public float falloffPower;
-    public float spatialScale;
-    public float temporalScale;
+    public uint Type;
+    public float Intensity;
+    public Vector2 Position;
+    public float FalloffPower;
+    public float SpatialScale;
+    public float TemporalScale;
 }
 
 
@@ -38,14 +34,15 @@ public class Force : MonoBehaviour
 
     public ForceData ToBufferData()
     {
-        var retval = new ForceData();
-        retval.type = enabled ? (uint)type : 0;
-        retval.intensity = intensity;
-        retval.position = transform.position;
-        retval.falloffPower = falloffPower;
-        retval.spatialScale = spatialScale;
-        retval.temporalScale = temporalScale;
-        return retval;
+        return new ForceData
+        {
+            Type = enabled ? (uint)type : 0,
+            Intensity = intensity,
+            Position = transform.position,
+            FalloffPower = falloffPower,
+            SpatialScale = spatialScale,
+            TemporalScale = temporalScale
+        };
     }
 }
 

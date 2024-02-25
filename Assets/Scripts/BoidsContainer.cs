@@ -137,7 +137,7 @@ public class BoidsContainer : MonoBehaviour
             using IEnumerator<Boid> enumerator = flock.Boids.GetEnumerator();
             for (; boidIndex < boidsCount; ++boidIndex)
             {
-                if (_boidBuffer.Data[boidIndex].flockIndex > flockIndex) break;
+                if (_boidBuffer.Data[boidIndex].FlockIndex > flockIndex) break;
 
                 if (enumerator.MoveNext())
                 {

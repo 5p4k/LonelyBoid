@@ -1,6 +1,3 @@
-using System;
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RepelOnClick : MonoBehaviour
@@ -29,13 +26,11 @@ public class RepelOnClick : MonoBehaviour
             }
         }
 
-        if (flock)
+        if (!flock) return;
+        var flockAnim = flock.GetComponent<Animator>();
+        if (flockAnim)
         {
-            var flockAnim = flock.GetComponent<Animator>();
-            if (flockAnim)
-            {
-                flockAnim.Play("Scatter", -1, 0.0f);
-            }
+            flockAnim.Play("Scatter", -1, 0.0f);
         }
     }
 }
