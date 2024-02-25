@@ -90,9 +90,10 @@ public class Flock : MonoBehaviour
         return retval;
     }
 
-    Boid CreateBoid() {
-        GameObject instance = Instantiate(prefab, this.transform);
-        Boid boid = instance.GetComponent<Boid>();
+    Boid CreateBoid()
+    {
+        var instance = PrefabUtility.InstantiatePrefab(prefab, transform) as GameObject;
+        Boid boid = instance!.GetComponent<Boid>();
 
         if (boid == null) {
             boid = instance.AddComponent(typeof(Boid)) as Boid;
