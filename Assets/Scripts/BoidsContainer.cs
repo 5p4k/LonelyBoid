@@ -198,6 +198,8 @@ public class BoidsContainer : MonoBehaviour
 
     private void ComputeBoidsUpdate(uint boidsCount)
     {
+        if (boidsCount == 0) return;
+        
         _flockBuffer.Bind(updateShader, 0, FlockDataID, FlockCountID);
         _boidBuffer.Bind(updateShader, 0, BoidDataID, boidsCount, BoidCountID);
         _forceBuffer.Bind(updateShader, 0, ForceDataID, ForceCountID);
@@ -205,7 +207,7 @@ public class BoidsContainer : MonoBehaviour
         updateShader.SetFloat(TimeID, Time.time);
         updateShader.SetFloat(DeltaTimeID, Time.deltaTime);
 
-        updateShader.Dispatch(0, Mathf.Max(1, Mathf.CeilToInt(boidsCount / 1024.0f)), 1, 1);
+        updateShader.Dispatch(0, (int)boidsCount, 1, 1);
 
         _boidBuffer.ToLocal();
         UpdateBoids(boidsCount);
