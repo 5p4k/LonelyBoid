@@ -267,6 +267,23 @@ public class BoidsContainer : MonoBehaviour
             index = (int)i;
             return true;
         }
+
+        if (Selection.Contains(gameObject))
+        {
+            if (_flocks.Length > 0)
+            {
+                type = ChildType.Flock;
+                index = 0;
+                return true;
+            }
+
+            if (_forces.Length > 0)
+            {
+                type = ChildType.Force;
+                index = 0;
+                return true;
+            }
+        }
 #endif
         type = ChildType.None;
         index = -1;
