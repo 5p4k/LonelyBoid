@@ -225,7 +225,7 @@ public class BoidsContainer : MonoBehaviour
         boidsFlowFieldShader.SetInt(ForceCountID, _flocks[flockIndex].includeForces ? _forces.Length : 0);
 
         boidsFlowFieldShader.SetInt(FlockIndexID, (int)flockIndex);
-        boidsFlowFieldShader.SetFloat(TimeID, Time.time);
+        boidsFlowFieldShader.SetFloat(TimeID, Application.isPlaying ? Time.time : 0.0f);
         boidsFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
         boidsFlowFieldShader.SetInt(StrideID, (int)orbitLength);
 
@@ -242,7 +242,7 @@ public class BoidsContainer : MonoBehaviour
         _orbitsBuffer.Bind(forceFlowFieldShader, 0, OrbitsID);
 
         forceFlowFieldShader.SetInt(ForceIndexID, (int)forceIndex);
-        forceFlowFieldShader.SetFloat(TimeID, Time.time);
+        forceFlowFieldShader.SetFloat(TimeID, Application.isPlaying ? Time.time : 0.0f);
         forceFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
         forceFlowFieldShader.SetInt(StrideID, (int)orbitLength);
 
