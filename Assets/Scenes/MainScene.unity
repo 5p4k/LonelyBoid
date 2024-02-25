@@ -253,7 +253,7 @@ MonoBehaviour:
   orbitDensity: 20
   orbitTimeStep: 0.05
   liveUpdate: 1
-  shouldDisplayFlowField: 1
+  shouldDisplayFlowField: 0
 --- !u!4 &520534153
 Transform:
   m_ObjectHideFlags: 0
@@ -463,8 +463,8 @@ MonoBehaviour:
   type: 1
   intensity: 0
   falloffPower: -0.5
-  spatialScale: 0.64
-  temporalScale: 0.1
+  spatialScale: 4.84
+  temporalScale: 4.86
 --- !u!95 &1798378038
 Animator:
   serializedVersion: 5

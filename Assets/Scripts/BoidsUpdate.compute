@@ -1,14 +1,14 @@
-#pragma kernel CSMain
+#pragma kernel main
 
 #include "BoidsLibrary.cginc"
 
-RWStructuredBuffer<BoidData> boid_data;
+RWStructuredBuffer<boid_data> boids;
 int boid_count;
 
-StructuredBuffer<FlockData> flock_data;
+StructuredBuffer<flock_data> flocks;
 int flock_count;
 
-StructuredBuffer<ForceData> force_data;
+StructuredBuffer<force_data> forces;
 int force_count;
 
 float delta_time;
@@ -16,54 +16,57 @@ float time;
 
 
 [numthreads(1, 1, 1)]
-void CSMain (uint3 id : SV_DispatchThreadID) {
+void main(uint3 id : SV_DispatchThreadID)
+{
     const int i = id.x;
 
     // Extract current boid
-    BoidData boid = boid_data[i];
-    const FlockData flock = flock_data[boid.flockIndex];
+    boid_data boid = boids[i];
+    const flock_data flock = flocks[boid.flock_index];
 
     // Compute neighborhood drives: 
-    float2 cohesionDrive, separationDrive, alignmentDrive;
+    float2 cohesion_drive, separation_drive, alignment_drive;
 
-    NeighborhoodDrivesCalculator driveCalc;
-    driveCalc.Initialize(boid, flock);
-    for (int j = 0; j < boid_count; ++j) {
-        if (i != j) {
-            driveCalc.Update(boid_data[j]);
+    neighborhood_drives_calculator drive_calc;
+    drive_calc.initialize(boid, flock);
+    for (int j = 0; j < boid_count; ++j)
+    {
+        if (i != j)
+        {
+            drive_calc.update(boids[j]);
         }
     }
-    driveCalc.Compute(cohesionDrive, separationDrive, alignmentDrive);
+    drive_calc.compute(cohesion_drive, separation_drive, alignment_drive);
 
     // Compute force field drives:
-    float2 survivalDrive = ComputeSurvivalDrive(boid, flock);
+    const float2 survival_drive = compute_survival_drive(boid, flock);
 
     // Compute the weighted acceleration from the drive
-    float2 acceleration = flock.separationWeight * separationDrive
-                        + flock.alignmentWeight * alignmentDrive
-                        + flock.cohesionWeight * cohesionDrive
-                        + flock.survivalWeight * survivalDrive;
+    float2 acceleration = flock.separation_weight * separation_drive
+        + flock.alignment_weight * alignment_drive
+        + flock.cohesion_weight * cohesion_drive
+        + flock.survival_weight * survival_drive;
 
     // Apply the external forces
     for (uint k = 0; k < (uint)force_count; ++k)
     {
-        ForceData force = force_data[k];
-        acceleration += force.Compute(boid.position, time);
+        force_data force = forces[k];
+        acceleration += force.compute(boid.position, time);
     }
 
     // Calculate the velocity update by accounting for max angular speed and max acceleration
-    const float2 deltaVelocity = ComputeVelocityChange(
+    const float2 deltaVelocity = compute_velocity_change(
         delta_time, boid.direction, boid.speed, acceleration,
-        flock.maxAcceleration, flock.maxAngularSpeedTau * delta_time * 2.f * PI
+        flock.max_acceleration, flock.max_angular_speed_tau * delta_time * 2.f * PI
     );
 
     // Account for velocity limit and apply the velocity update
-    const float2 velocity = clamp_magnitude(boid.velocity() + deltaVelocity, flock.minSpeed, flock.maxSpeed);
-    boid.setVelocity(velocity);
+    const float2 velocity = clamp_magnitude(boid.velocity() + deltaVelocity, flock.min_speed, flock.max_speed);
+    boid.set_velocity(velocity);
 
     // Compute the position update
     boid.position += velocity * delta_time;
-    
+
     // Copy back, there is no references in HLSL
-    boid_data[i] = boid;
+    boids[i] = boid;
 }

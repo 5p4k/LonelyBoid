@@ -21,11 +21,11 @@ public class BoidsContainer : MonoBehaviour
     private static readonly int DeltaTimeID = Shader.PropertyToID("delta_time");
     private static readonly int ForceIndexID = Shader.PropertyToID("force_index");
     private static readonly int FlockIndexID = Shader.PropertyToID("flock_index");
-    private static readonly int ForceDataID = Shader.PropertyToID("force_data");
+    private static readonly int ForceDataID = Shader.PropertyToID("forces");
     private static readonly int ForceCountID = Shader.PropertyToID("force_count");
-    private static readonly int FlockDataID = Shader.PropertyToID("flock_data");
+    private static readonly int FlockDataID = Shader.PropertyToID("flocks");
     private static readonly int FlockCountID = Shader.PropertyToID("flock_count");
-    private static readonly int BoidDataID = Shader.PropertyToID("boid_data");
+    private static readonly int BoidDataID = Shader.PropertyToID("boids");
     private static readonly int BoidCountID = Shader.PropertyToID("boid_count");
     private static readonly int StrideID = Shader.PropertyToID("stride");
     private static readonly int OrbitsID = Shader.PropertyToID("orbits");
