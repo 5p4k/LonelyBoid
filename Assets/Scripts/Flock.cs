@@ -1,8 +1,8 @@
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Pool;
+using Random = UnityEngine.Random;
 
 public struct FlockData {
     public float viewRadius;
@@ -159,18 +159,6 @@ public class Flock : MonoBehaviour
         return null;
     }
 
-    BoidsContainer GetContainer() {
-        Transform t = transform.parent;
-        while (t != null) {
-            BoidsContainer container = t.gameObject.GetComponent<BoidsContainer>();
-            if (container) {
-                return container;
-            }
-            t = t.parent;
-        }
-        return null;
-    }
-
     void Start() {
         _boidsPool = new ObjectPool<Boid>(
             CreateBoid,
@@ -181,16 +169,6 @@ public class Flock : MonoBehaviour
             (int)maxCount,
             (int)maxPoolCapacity
         );
-    }
-
-    public Rect accelerationFieldDomain {
-        get {
-            float radius = Mathf.Max(spawnRadius, killRadius);
-            return new Rect(
-                transform.position.x - radius, transform.position.y - radius,
-                2 * radius, 2 * radius
-            );
-        }
     }
 
     void OnDestroy() {

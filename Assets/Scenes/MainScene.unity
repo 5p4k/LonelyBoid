@@ -248,10 +248,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   updateShader: {fileID: 7200000, guid: f802b9696f7775dd191cd73a03762650, type: 3}
   boidsFlowFieldShader: {fileID: 7200000, guid: a18abaac565e4485ab67febb1f0a61bd, type: 3}
+  forceFlowFieldShader: {fileID: 7200000, guid: 772767ce324345318c1f856cec49de9c, type: 3}
   orbitLength: 5
   orbitDensity: 20
   orbitTimeStep: 0.05
   liveUpdate: 1
+  shouldDisplayFlowField: 1
 --- !u!4 &520534153
 Transform:
   m_ObjectHideFlags: 0
@@ -391,6 +393,7 @@ MonoBehaviour:
   viewAngleTau: 0.5
   avoidRadius: 2
   avoidAngleTau: 0.8
+  includeForces: 0
 --- !u!95 &1429425872
 Animator:
   serializedVersion: 5
@@ -460,8 +463,8 @@ MonoBehaviour:
   type: 1
   intensity: 0
   falloffPower: -0.5
-  spatialScale: 0.5
-  temporalScale: 1
+  spatialScale: 0.64
+  temporalScale: 0.1
 --- !u!95 &1798378038
 Animator:
   serializedVersion: 5

@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Generic;
-using Unity.Burst;
 using UnityEngine;
 using UnityEditor;
-using UnityEngine.UIElements;
 
+[ExecuteInEditMode]
 public class BoidsContainer : MonoBehaviour
 {
+    private enum ChildType
+    {
+        None,
+        Flock,
+        Force
+    }
+
     [Header("Shaders")] public ComputeShader updateShader;
     public ComputeShader boidsFlowFieldShader;
     public ComputeShader forceFlowFieldShader;
@@ -38,10 +44,13 @@ public class BoidsContainer : MonoBehaviour
     public float orbitTimeStep = 0.05f;
     public bool liveUpdate = true;
 
+    [HideInInspector] public bool shouldDisplayFlowField;
+    private ChildType _selectedChildType = ChildType.None;
+    private int _selectedChildIndex = -1;
+
     private readonly DualBuffer<Vector2> _orbitsBuffer = new();
-    
+
     private uint _orbitCount;
-    private static Rect _lastEditorScreen = Rect.zero;
 
     private void PopulateFlocksBuffer(out uint boidsAllocSize)
     {
@@ -86,10 +95,23 @@ public class BoidsContainer : MonoBehaviour
         }
     }
 
-    private void PopulateOrbitsBuffer(Rect window, out uint orbitsCount)
+    private static Rect EditorScreenWindow
     {
-        _orbitsBuffer.Ensure((uint)(orbitDensity * orbitDensity * orbitLength));
+        get
+        {
+            if (!Camera.current) return Rect.zero;
 
+            var llc = Camera.current.ViewportToWorldPoint(new Vector3(0f, 0f, 0));
+            var urc = Camera.current.ViewportToWorldPoint(new Vector3(1f, 1f, 0));
+            return new Rect(llc, urc - llc);
+        }
+    }
+
+    private void PopulateOrbitsBuffer(out uint orbitsCount)
+    {
+        _orbitsBuffer.Ensure(orbitDensity * orbitDensity * orbitLength);
+
+        var window = EditorScreenWindow;
         var delta = new Vector2(window.width / orbitDensity, window.height / orbitDensity);
         var origin = window.min + delta * 0.5f;
 
@@ -147,6 +169,8 @@ public class BoidsContainer : MonoBehaviour
     {
         _flockBuffer.Release();
         _boidBuffer.Release();
+        _forceBuffer.Release();
+        _orbitsBuffer.Release();
     }
 
 #if UNITY_EDITOR
@@ -170,12 +194,6 @@ public class BoidsContainer : MonoBehaviour
                 "Assets/Scripts/ForceFlowField.compute", typeof(ComputeShader));
         }
     }
-
-    private void OnValidate()
-    {
-        BoidsContainerEditor.EditorScreenWindowChanged(out var window);
-        RecomputeFlowField(window);
-    }
 #endif
 
     private void ComputeBoidsUpdate(uint boidsCount)
@@ -192,11 +210,11 @@ public class BoidsContainer : MonoBehaviour
         _boidBuffer.ToLocal();
         UpdateBoids(boidsCount);
     }
-    
+
     private void ComputeFlockFlowField(uint flockIndex, uint boidsCount, uint orbitsCount)
     {
         if (!boidsFlowFieldShader) return;
-        
+
         _flockBuffer.Bind(boidsFlowFieldShader, 0, FlockDataID, FlockCountID);
         _boidBuffer.Bind(boidsFlowFieldShader, 0, BoidDataID, boidsCount, BoidCountID);
         _forceBuffer.Bind(boidsFlowFieldShader, 0, ForceDataID);
@@ -213,11 +231,11 @@ public class BoidsContainer : MonoBehaviour
 
         _orbitsBuffer.ToLocal();
     }
-    
+
     private void ComputeForceFlowField(uint forceIndex, uint orbitsCount)
     {
         if (!forceFlowFieldShader) return;
-        
+
         _forceBuffer.Bind(forceFlowFieldShader, 0, ForceDataID);
         _orbitsBuffer.Bind(forceFlowFieldShader, 0, OrbitsID);
 
@@ -231,64 +249,108 @@ public class BoidsContainer : MonoBehaviour
         _orbitsBuffer.ToLocal();
     }
 
-    private void ComputeFlowField(Rect window, uint boidsCount)
+    private bool ShouldDisplayFlowField(out ChildType type, out int index)
     {
-        if (_selectedFlockIndex < 0 && _selectedForceIndex < 0) return;
-        PopulateOrbitsBuffer(window, out _orbitCount);
-        
-        if (_selectedForceIndex >= 0)
+#if UNITY_EDITOR
+        for (uint i = 0; i < _flocks.Length; ++i)
         {
-            ComputeForceFlowField((uint)_selectedForceIndex, _orbitCount);
+            if (!Selection.Contains(_flocks[i].gameObject)) continue;
+            type = ChildType.Flock;
+            index = (int)i;
+            return true;
         }
-        else if (_selectedFlockIndex >= 0)
+
+        for (uint i = 0; i < _forces.Length; ++i)
         {
-            ComputeFlockFlowField((uint)_selectedFlockIndex, boidsCount, _orbitCount);
+            if (!Selection.Contains(_forces[i].gameObject)) continue;
+            type = ChildType.Force;
+            index = (int)i;
+            return true;
+        }
+#endif
+        type = ChildType.None;
+        index = -1;
+        return false;
+    }
+
+    private bool ShouldUpdateFlowField()
+    {
+        var oldChildType = _selectedChildType;
+        var oldChildIndex = _selectedChildIndex;
+        shouldDisplayFlowField = ShouldDisplayFlowField(out _selectedChildType, out _selectedChildIndex);
+        if (!shouldDisplayFlowField) return false;
+        if (oldChildType != _selectedChildType || oldChildIndex != _selectedChildIndex) return true;
+        return !Application.isPlaying || liveUpdate;
+    }
+
+    private void UpdateFlowField()
+    {
+        if (!shouldDisplayFlowField || _selectedChildType == ChildType.None) return;
+
+        uint boidsCount = 0;
+        if (_selectedChildType == ChildType.Flock)
+        {
+            PopulateFlocksBuffer(out var boidsAllocSize);
+            PopulateBoidsBuffer(boidsAllocSize, out boidsCount);
+        }
+
+        PopulateForcesBuffer();
+        UpdateFlowFieldNoPopulate(boidsCount);
+    }
+
+    private void UpdateFlowFieldNoPopulate(uint boidsCount)
+    {
+        if (!shouldDisplayFlowField || _selectedChildType == ChildType.None) return;
+        PopulateOrbitsBuffer(out _orbitCount);
+        
+        switch (_selectedChildType)
+        {
+            case ChildType.Flock:
+                ComputeFlockFlowField((uint)_selectedChildIndex, boidsCount, _orbitCount);
+                break;
+            case ChildType.Force:
+                ComputeForceFlowField((uint)_selectedChildIndex, _orbitCount);
+                break;
+            case ChildType.None:
+                break;
+            default:
+                throw new ArgumentOutOfRangeException();
         }
     }
-    
 
     private void Update()
     {
-        PopulateFlocksBuffer(out var boidsAllocSize);
-        PopulateBoidsBuffer(boidsAllocSize, out var boidsCount);
-        PopulateForcesBuffer();
-
-        ComputeBoidsUpdate(boidsCount);
-
-        // Post update actions
-        foreach (var flock in _flocks)
+        if (!Application.isPlaying && Application.isEditor)
         {
-            flock.KillStrayBoids();
-            flock.SpawnIfNeeded();
-        }
-
-#if UNITY_EDITOR
-        if (!liveUpdate) return;
-
-        BoidsContainerEditor.EditorScreenWindowChanged(out var window);
-        ComputeFlowField(window, boidsCount);
-#endif
-    }
-    
-    public void RecomputeFlowField(Rect window)
-    {
-        if (_flocks == null || _flocks.Length == 0)
-        {
-            // TODO not this
+            // This has been generated by the editor, so maybe some children has been added or deleted
             Reload();
+            if (ShouldUpdateFlowField()) UpdateFlowField();
         }
-        
-        PopulateFlocksBuffer(out var boidsAllocSize);
-        PopulateBoidsBuffer(boidsAllocSize, out var boidsCount);
-        PopulateForcesBuffer();
-        PopulateOrbitsBuffer(window, out _orbitCount);
+        else
+        {
+            // Assume immutable flocks and forces, but properties might have changed
+            PopulateFlocksBuffer(out var boidsAllocSize);
+            PopulateBoidsBuffer(boidsAllocSize, out var boidsCount);
+            PopulateForcesBuffer();
+            ComputeBoidsUpdate(boidsCount);
 
-        ComputeFlockFlowField(0, boidsCount, _orbitCount);
+            // Post update actions
+            foreach (var flock in _flocks)
+            {
+                flock.KillStrayBoids();
+                flock.SpawnIfNeeded();
+            }
+
+            if (ShouldUpdateFlowField()) UpdateFlowFieldNoPopulate(boidsCount);
+        }
     }
 
+
 #if UNITY_EDITOR
-    public void DrawFlowFieldHandles()
+    private void OnDrawGizmos()
     {
+        if (!Camera.current || !shouldDisplayFlowField) return;
+
         Vector2 pxSize = Camera.current.ScreenToWorldPoint(new Vector3(1, 1, 0))
                          - Camera.current.ScreenToWorldPoint(Vector3.zero);
 
@@ -306,9 +368,7 @@ public class BoidsContainer : MonoBehaviour
             }
         }
     }
-#endif
-
-#if UNITY_EDITOR
+    
     [CustomEditor(typeof(BoidsContainer))]
     public class BoidsContainerEditor : Editor
     {
@@ -346,41 +406,6 @@ public class BoidsContainer : MonoBehaviour
 
             EditorGUILayout.EndHorizontal();
         }
-
-        public static bool EditorScreenWindowChanged(out Rect window)
-        {
-            if (!Camera.current)
-            {
-                window = Rect.zero;
-                return false;
-            }
-
-            var llc = Camera.current.ViewportToWorldPoint(new Vector3(0f, 0f, 0));
-            var urc = Camera.current.ViewportToWorldPoint(new Vector3(1f, 1f, 0));
-
-            window = new Rect(llc, urc - llc);
-
-            var changed = window == _lastEditorScreen;
-            _lastEditorScreen = window;
-
-            return changed;
-        }
-
-        public void OnSceneGUI()
-        {
-            var container = target as BoidsContainer;
-
-            if (!Application.isPlaying)
-            {
-                if (EditorScreenWindowChanged(out var window))
-                {
-                    _lastEditorScreen = window;
-                    container!.RecomputeFlowField(window);
-                }
-            }
-
-            container!.DrawFlowFieldHandles();
-        }
     }
 #endif
 }
@@ -394,7 +419,7 @@ public class DualBuffer<T>
 
     private ComputeBuffer _computeBuffer;
 
-    public uint AllocSize => (uint)(Data?.Length ?? 0);
+    private uint AllocSize => (uint)(Data?.Length ?? 0);
 
     public void Ensure(uint allocSize)
     {
