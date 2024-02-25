@@ -73,7 +73,7 @@ public class BoidsContainer : MonoBehaviour
         {
             if (flock.enabled)
             {
-                foreach (var boid in flock.boids)
+                foreach (var boid in flock.Boids)
                 {
                     _boidBuffer.Data[boidIndex++] = boid.ToBufferData(flockIndex);
                 }
@@ -134,7 +134,7 @@ public class BoidsContainer : MonoBehaviour
         uint boidIndex = 0;
         foreach (var flock in _flocks)
         {
-            using IEnumerator<Boid> enumerator = flock.boids.GetEnumerator();
+            using IEnumerator<Boid> enumerator = flock.Boids.GetEnumerator();
             for (; boidIndex < boidsCount; ++boidIndex)
             {
                 if (_boidBuffer.Data[boidIndex].flockIndex > flockIndex) break;
