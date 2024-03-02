@@ -253,7 +253,7 @@ MonoBehaviour:
   orbitDensity: 20
   orbitTimeStep: 0.05
   liveUpdate: 1
-  shouldDisplayFlowField: 0
+  shouldDisplayFlowField: 1
 --- !u!4 &520534153
 Transform:
   m_ObjectHideFlags: 0
