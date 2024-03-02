@@ -227,6 +227,24 @@ public class FlockEditor : Editor
         radius = newRadius;
     }
 
+    public override void OnInspectorGUI()
+    {
+        var flock = target as Flock;
+        Debug.Assert(flock);
+
+        DrawDefaultInspector();
+
+        var container = BoidsContainer.FindParent(flock.gameObject);
+        if (!container)
+        {
+            BoidsContainer.BoidsContainerEditor.MissingContainerGUI();
+        }
+        else
+        {
+            BoidsContainer.BoidsContainerEditor.VisualizationGUI(container);
+        }
+    }
+
     public void OnSceneGUI()
     {
         var flock = target as Flock;

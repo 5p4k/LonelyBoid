@@ -1,4 +1,5 @@
 using System;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEditor;
 
@@ -75,6 +76,16 @@ public class ForceEditor : Editor
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
+        }
+
+        var container = BoidsContainer.FindParent(force.gameObject);
+        if (!container)
+        {
+            BoidsContainer.BoidsContainerEditor.MissingContainerGUI();
+        }
+        else
+        {
+            BoidsContainer.BoidsContainerEditor.VisualizationGUI(container);
         }
     }
 }

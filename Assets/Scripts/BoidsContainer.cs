@@ -188,6 +188,17 @@ public class BoidsContainer : MonoBehaviour
     }
 #endif
 
+    public static BoidsContainer FindParent(GameObject go)
+    {
+        for (var t = go.transform; t; t = t.parent)
+        {
+            var container = t.gameObject.GetComponent<BoidsContainer>();
+            if (container) return container;
+        }
+
+        return null;
+    }
+
     private void ComputeBoidsUpdate(uint boidsCount)
     {
         if (boidsCount == 0) return;
@@ -410,6 +421,41 @@ public class BoidsContainer : MonoBehaviour
     [CustomEditor(typeof(BoidsContainer))]
     public class BoidsContainerEditor : Editor
     {
+        public static void VisualizationGUI(BoidsContainer container)
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Visualization", EditorStyles.boldLabel);
+
+            var newOrbitLength = (uint)EditorGUILayout.IntField(ObjectNames.NicifyVariableName("orbitLength"),
+                (int)container.orbitLength);
+
+            var newOrbitDensity = (uint)EditorGUILayout.IntField(ObjectNames.NicifyVariableName("orbitDensity"),
+                (int)container.orbitDensity);
+
+            var newOrbitTimeStep = EditorGUILayout.FloatField(ObjectNames.NicifyVariableName("orbitTimeStep"),
+                container.orbitTimeStep);
+
+            var newLiveUpdate = EditorGUILayout.Toggle(ObjectNames.NicifyVariableName("liveUpdate"),
+                container.liveUpdate);
+
+            if (newOrbitDensity == container.orbitDensity && newOrbitLength == container.orbitLength &&
+                Math.Abs(newOrbitTimeStep - container.orbitTimeStep) < 0.001f &&
+                newLiveUpdate == container.liveUpdate) return;
+
+            container.orbitLength = newOrbitLength;
+            container.orbitDensity = newOrbitDensity;
+            container.orbitTimeStep = newOrbitTimeStep;
+            container.liveUpdate = newLiveUpdate;
+            container.RequestFlowFieldUpdate();
+        }
+
+        public static void MissingContainerGUI()
+        {
+            EditorGUILayout.Space();
+            EditorGUILayout.HelpBox("You must parent this to a game object with a BoidsContainer component.",
+                MessageType.Warning);
+        }
+
         public override void OnInspectorGUI()
         {
             var container = target as BoidsContainer;
