@@ -1,7 +1,7 @@
 #ifndef BOIDS_LIBRARY_CGINC
 #define BOIDS_LIBRARY_CGINC
 
-#include <NoiseShader/Packages/jp.keijiro.noiseshader/Shader/SimplexNoise3D.hlsl>
+#include "SimplexNoise.cginc"
 
 #if SHADER_API_GLCORE || SHADER_API_VULKAN
 #define CONST_MEMBER
@@ -78,7 +78,7 @@ struct force_data
     {
         const float2 location = (at - position) * spatial_scale;
         const float3 input_to_noise = float3(location.x, location.y, time * temporal_scale);
-        return intensity * SimplexNoiseGrad(input_to_noise).xy;
+        return intensity * simplex_noise(input_to_noise).xy;
     }
 
     float2 compute(const float2 at, const float time)
