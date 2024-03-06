@@ -93,7 +93,11 @@ public class Flock : MonoBehaviour
 
     private Boid CreateBoid()
     {
+#if UNITY_EDITOR
         var instance = PrefabUtility.InstantiatePrefab(prefab, transform) as GameObject;
+#else
+        var instance = Instantiate(prefab, transform) as GameObject;
+#endif
         var boid = instance!.GetComponent<Boid>();
 
         if (boid == null)
