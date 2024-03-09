@@ -13,9 +13,12 @@ public class BoidsContainer : MonoBehaviour
         Force
     }
 
-    [Header("Shaders")] public ComputeShader updateShader;
-    public ComputeShader boidsFlowFieldShader;
-    public ComputeShader forceFlowFieldShader;
+    [Header("Shader override")] public ComputeShader updateShaderOverride;
+    public ComputeShader boidsFlowFieldShaderOverride;
+    public ComputeShader forceFlowFieldShaderOverride;
+    [NonSerialized] private ComputeShader _updateShader;
+    [NonSerialized] private ComputeShader _boidsFlowFieldShader;
+    [NonSerialized] private ComputeShader _forceFlowFieldShader;
 
     private static readonly int TimeID = Shader.PropertyToID("time");
     private static readonly int DeltaTimeID = Shader.PropertyToID("delta_time");
@@ -176,28 +179,20 @@ public class BoidsContainer : MonoBehaviour
 #endif
     }
 
-#if UNITY_EDITOR
     private void Awake()
     {
-        if (updateShader == null)
-        {
-            updateShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
-                "Assets/Scripts/BoidsUpdate.compute", typeof(ComputeShader));
-        }
-
-        if (boidsFlowFieldShader == null)
-        {
-            boidsFlowFieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
-                "Assets/Scripts/BoidsFlowField.compute", typeof(ComputeShader));
-        }
-
-        if (forceFlowFieldShader == null)
-        {
-            forceFlowFieldShader = (ComputeShader)AssetDatabase.LoadAssetAtPath(
-                "Assets/Scripts/ForceFlowField.compute", typeof(ComputeShader));
-        }
-    }
+        _updateShader = updateShaderOverride != null 
+            ? updateShaderOverride
+            : Resources.Load<ComputeShader>("Shaders/BoidsUpdate.compute");
+#if UNITY_EDITOR
+        _boidsFlowFieldShader = boidsFlowFieldShaderOverride != null 
+            ? boidsFlowFieldShaderOverride
+            : Resources.Load<ComputeShader>("Shaders/BoidsFlowField.compute");
+        _forceFlowFieldShader = forceFlowFieldShaderOverride != null 
+            ? forceFlowFieldShaderOverride
+            : Resources.Load<ComputeShader>("Shaders/ForceFlowField.compute");
 #endif
+    }
 
     public static BoidsContainer FindParent(GameObject go)
     {
@@ -214,14 +209,14 @@ public class BoidsContainer : MonoBehaviour
     {
         if (boidsCount == 0) return;
 
-        _flockBuffer.Bind(updateShader, 0, FlockDataID, FlockCountID);
-        _boidBuffer.Bind(updateShader, 0, BoidDataID, boidsCount, BoidCountID);
-        _forceBuffer.Bind(updateShader, 0, ForceDataID, ForceCountID);
+        _flockBuffer.Bind(_updateShader, 0, FlockDataID, FlockCountID);
+        _boidBuffer.Bind(_updateShader, 0, BoidDataID, boidsCount, BoidCountID);
+        _forceBuffer.Bind(_updateShader, 0, ForceDataID, ForceCountID);
 
-        updateShader.SetFloat(TimeID, Time.time);
-        updateShader.SetFloat(DeltaTimeID, Time.deltaTime);
+        _updateShader.SetFloat(TimeID, Time.time);
+        _updateShader.SetFloat(DeltaTimeID, Time.deltaTime);
 
-        updateShader.Dispatch(0, (int)boidsCount, 1, 1);
+        _updateShader.Dispatch(0, (int)boidsCount, 1, 1);
 
         _boidBuffer.ToLocal();
         UpdateBoids(boidsCount);
@@ -230,38 +225,38 @@ public class BoidsContainer : MonoBehaviour
 #if UNITY_EDITOR
     private void ComputeFlockFlowField(uint flockIndex, uint boidsCount, uint orbitsCount)
     {
-        if (!boidsFlowFieldShader) return;
+        if (!_boidsFlowFieldShader) return;
 
-        _flockBuffer.Bind(boidsFlowFieldShader, 0, FlockDataID, FlockCountID);
-        _boidBuffer.Bind(boidsFlowFieldShader, 0, BoidDataID, boidsCount, BoidCountID);
-        _forceBuffer.Bind(boidsFlowFieldShader, 0, ForceDataID);
-        _orbitsBuffer.Bind(boidsFlowFieldShader, 0, OrbitsID);
+        _flockBuffer.Bind(_boidsFlowFieldShader, 0, FlockDataID, FlockCountID);
+        _boidBuffer.Bind(_boidsFlowFieldShader, 0, BoidDataID, boidsCount, BoidCountID);
+        _forceBuffer.Bind(_boidsFlowFieldShader, 0, ForceDataID);
+        _orbitsBuffer.Bind(_boidsFlowFieldShader, 0, OrbitsID);
 
-        boidsFlowFieldShader.SetInt(ForceCountID, _flocks[flockIndex].includeForces ? _forces.Length : 0);
+        _boidsFlowFieldShader.SetInt(ForceCountID, _flocks[flockIndex].includeForces ? _forces.Length : 0);
 
-        boidsFlowFieldShader.SetInt(FlockIndexID, (int)flockIndex);
-        boidsFlowFieldShader.SetFloat(TimeID, Application.isPlaying ? Time.time : 0.0f);
-        boidsFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
-        boidsFlowFieldShader.SetInt(StrideID, (int)orbitLength);
+        _boidsFlowFieldShader.SetInt(FlockIndexID, (int)flockIndex);
+        _boidsFlowFieldShader.SetFloat(TimeID, Application.isPlaying ? Time.time : 0.0f);
+        _boidsFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
+        _boidsFlowFieldShader.SetInt(StrideID, (int)orbitLength);
 
-        boidsFlowFieldShader.Dispatch(0, (int)orbitsCount, 1, 1);
+        _boidsFlowFieldShader.Dispatch(0, (int)orbitsCount, 1, 1);
 
         _orbitsBuffer.ToLocal();
     }
 
     private void ComputeForceFlowField(uint forceIndex, uint orbitsCount)
     {
-        if (!forceFlowFieldShader) return;
+        if (!_forceFlowFieldShader) return;
 
-        _forceBuffer.Bind(forceFlowFieldShader, 0, ForceDataID);
-        _orbitsBuffer.Bind(forceFlowFieldShader, 0, OrbitsID);
+        _forceBuffer.Bind(_forceFlowFieldShader, 0, ForceDataID);
+        _orbitsBuffer.Bind(_forceFlowFieldShader, 0, OrbitsID);
 
-        forceFlowFieldShader.SetInt(ForceIndexID, (int)forceIndex);
-        forceFlowFieldShader.SetFloat(TimeID, Application.isPlaying ? Time.time : 0.0f);
-        forceFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
-        forceFlowFieldShader.SetInt(StrideID, (int)orbitLength);
+        _forceFlowFieldShader.SetInt(ForceIndexID, (int)forceIndex);
+        _forceFlowFieldShader.SetFloat(TimeID, Application.isPlaying ? Time.time : 0.0f);
+        _forceFlowFieldShader.SetFloat(DeltaTimeID, orbitTimeStep);
+        _forceFlowFieldShader.SetInt(StrideID, (int)orbitLength);
 
-        forceFlowFieldShader.Dispatch(0, (int)orbitsCount, 1, 1);
+        _forceFlowFieldShader.Dispatch(0, (int)orbitsCount, 1, 1);
 
         _orbitsBuffer.ToLocal();
     }
