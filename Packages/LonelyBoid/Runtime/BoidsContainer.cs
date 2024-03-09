@@ -416,17 +416,17 @@ public class DualBuffer<T>
 
     public void Ensure(uint allocSize)
     {
-        if (allocSize > 0 && (Data == null || Data.Length < allocSize))
-        {
+        // Still create at least some entries otherwise we cannot bind to the shader and so on
+        allocSize = Math.Max(4, allocSize);
+
+        if (Data == null || Data.Length < allocSize) {
             Data = new T[allocSize];
         }
 
         if (_computeBuffer != null && _computeBuffer.count >= allocSize) return;
 
         _computeBuffer?.Release();
-
-        // Still create at least a 1-entry buffer otherwise we cannot set the compute shader up
-        _computeBuffer = new ComputeBuffer((int)Mathf.Max(allocSize, 1), EntrySize);
+        _computeBuffer = new ComputeBuffer((int)allocSize, EntrySize);
     }
 
     public void Bind(ComputeShader shader, int kernelIndex, int fieldID)
