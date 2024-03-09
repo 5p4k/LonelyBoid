@@ -1,0 +1,24 @@
+{
+    "name": "xyz.saccardi.lonelyboid",
+    "version": "1.0.0",
+    "displayName": "Lonely Boid",
+    "description": "A 2D boids library on compute shaders, with multi-flock and force fields",
+    "unity": "2022.3",
+    "unityRelease": "16f1",
+    "documentationUrl": "https://github.com/5p4k/LonelyBoid",
+    "changelogUrl": "https://github.com/5p4k/LonelyBoid/commits/main/",
+    "licensesUrl": "https://github.com/5p4k/LonelyBoid/blob/main/LICENSE",
+    "keywords":
+    [
+        "boids",
+        "compute",
+        "2d",
+        "force"
+    ],
+    "author":
+    {
+        "name": "Pietro Saccardi",
+        "email": "lizardm4@gmail.com",
+        "url": "https://github.com/5p4k"
+    }
+}

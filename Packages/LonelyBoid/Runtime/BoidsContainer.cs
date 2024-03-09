@@ -183,14 +183,14 @@ public class BoidsContainer : MonoBehaviour
     {
         _updateShader = updateShaderOverride != null 
             ? updateShaderOverride
-            : Resources.Load<ComputeShader>("Shaders/BoidsUpdate.compute");
+            : Resources.Load<ComputeShader>("Shaders/BoidsUpdate");
 #if UNITY_EDITOR
         _boidsFlowFieldShader = boidsFlowFieldShaderOverride != null 
             ? boidsFlowFieldShaderOverride
-            : Resources.Load<ComputeShader>("Shaders/BoidsFlowField.compute");
+            : Resources.Load<ComputeShader>("Shaders/BoidsFlowField");
         _forceFlowFieldShader = forceFlowFieldShaderOverride != null 
             ? forceFlowFieldShaderOverride
-            : Resources.Load<ComputeShader>("Shaders/ForceFlowField.compute");
+            : Resources.Load<ComputeShader>("Shaders/ForceFlowField");
 #endif
     }
 
