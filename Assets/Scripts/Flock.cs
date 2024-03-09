@@ -1,10 +1,13 @@
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using UnityEngine;
 using UnityEditor;
 using UnityEngine.Pool;
 using Random = UnityEngine.Random;
 
+
+[SuppressMessage("ReSharper", "NotAccessedField.Global")]
 public struct FlockData
 {
     public float ViewRadius;
@@ -197,71 +200,4 @@ public class Flock : MonoBehaviour
     {
         _boidsPool.Dispose();
     }
-
-
-#if UNITY_EDITOR
-    private void OnDrawGizmos()
-    {
-        var active = Selection.Contains(gameObject);
-
-        using (new Handles.DrawingScope(active ? Color.green : Handles.color))
-        {
-            Handles.DrawWireDisc(transform.position, Vector3.back, spawnRadius);
-        }
-
-        using (new Handles.DrawingScope(active ? Color.red : Handles.color))
-        {
-            Handles.DrawWireDisc(transform.position, Vector3.back, killRadius);
-        }
-    }
-#endif
 }
-
-
-#if UNITY_EDITOR
-[CustomEditor(typeof(Flock))]
-public class FlockEditor : Editor
-{
-    private static void HandleRadius(Component flock, ref float radius, string description)
-    {
-        EditorGUI.BeginChangeCheck();
-        var newRadius = Handles.RadiusHandle(Quaternion.identity, flock.transform.position, radius, true);
-        if (!EditorGUI.EndChangeCheck()) return;
-        Undo.RecordObject(flock, description);
-        radius = newRadius;
-    }
-
-    public override void OnInspectorGUI()
-    {
-        var flock = target as Flock;
-        Debug.Assert(flock);
-
-        DrawDefaultInspector();
-
-        var container = BoidsContainer.FindParent(flock.gameObject);
-        if (!container)
-        {
-            BoidsContainer.BoidsContainerEditor.MissingContainerGUI();
-        }
-        else
-        {
-            BoidsContainer.BoidsContainerEditor.VisualizationGUI(container);
-        }
-    }
-
-    public void OnSceneGUI()
-    {
-        var flock = target as Flock;
-
-        using (new Handles.DrawingScope(Color.green))
-        {
-            HandleRadius(flock, ref flock!.spawnRadius, "Change spawn radius");
-        }
-
-        using (new Handles.DrawingScope(Color.red))
-        {
-            HandleRadius(flock, ref flock!.killRadius, "Change kill radius");
-        }
-    }
-}
-#endif

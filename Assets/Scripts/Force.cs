@@ -1,15 +1,15 @@
-using System;
-using Unity.VisualScripting;
+using System.Diagnostics.CodeAnalysis;
 using UnityEngine;
-using UnityEditor;
 
 
+[SuppressMessage("ReSharper", "UnusedMember.Global")]
 public enum ForceType
 {
     Radial = 1,
     Turbulence = 2
 }
 
+[SuppressMessage("ReSharper", "NotAccessedField.Global")]
 public struct ForceData
 {
     public uint Type;
@@ -46,47 +46,3 @@ public class Force : MonoBehaviour
         };
     }
 }
-
-
-#if UNITY_EDITOR
-[CustomEditor(typeof(Force))]
-public class ForceEditor : Editor
-{
-    public override void OnInspectorGUI()
-    {
-        var force = target as Force;
-        Debug.Assert(force);
-
-        DrawDefaultInspector();
-
-        EditorGUILayout.Space();
-        EditorGUILayout.LabelField(force.type.ToString(), EditorStyles.boldLabel);
-
-        switch (force.type)
-        {
-            case ForceType.Radial:
-                force.falloffPower =
-                    EditorGUILayout.FloatField(ObjectNames.NicifyVariableName("falloffPower"), force.falloffPower);
-                break;
-            case ForceType.Turbulence:
-                force.spatialScale =
-                    EditorGUILayout.FloatField(ObjectNames.NicifyVariableName("spatialScale"), force.spatialScale);
-                force.temporalScale =
-                    EditorGUILayout.FloatField(ObjectNames.NicifyVariableName("temporalScale"), force.temporalScale);
-                break;
-            default:
-                throw new ArgumentOutOfRangeException();
-        }
-
-        var container = BoidsContainer.FindParent(force.gameObject);
-        if (!container)
-        {
-            BoidsContainer.BoidsContainerEditor.MissingContainerGUI();
-        }
-        else
-        {
-            BoidsContainer.BoidsContainerEditor.VisualizationGUI(container);
-        }
-    }
-}
-#endif
