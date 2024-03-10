@@ -35,10 +35,10 @@ public class BoidsContainer : MonoBehaviour
 
     [NonSerialized] private readonly DualBuffer<BoidData> _boidBuffer = new();
 
-    [NonSerialized] private Flock[] _flocks;
+    [NonSerialized] private OldFlock[] _flocks;
     [NonSerialized] private readonly DualBuffer<FlockData> _flockBuffer = new();
 
-    [NonSerialized] private Force[] _forces;
+    [NonSerialized] private OldForce[] _forces;
     [NonSerialized] private readonly DualBuffer<ForceData> _forceBuffer = new();
 
     [Header("Visualization")] public uint orbitLength = 5;
@@ -138,7 +138,7 @@ public class BoidsContainer : MonoBehaviour
         uint boidIndex = 0;
         foreach (var flock in _flocks)
         {
-            using IEnumerator<Boid> enumerator = flock.Boids.GetEnumerator();
+            using IEnumerator<OldBoid> enumerator = flock.Boids.GetEnumerator();
             for (; boidIndex < boidsCount; ++boidIndex)
             {
                 if (_boidBuffer.Data[boidIndex].FlockIndex > flockIndex) break;
@@ -160,8 +160,8 @@ public class BoidsContainer : MonoBehaviour
     // ReSharper disable once MemberCanBePrivate.Global
     public void Reload()
     {
-        _flocks = GetComponentsInChildren<Flock>(true);
-        _forces = GetComponentsInChildren<Force>(true);
+        _flocks = GetComponentsInChildren<OldFlock>(true);
+        _forces = GetComponentsInChildren<OldForce>(true);
     }
 
     private void Start()

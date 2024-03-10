@@ -54,7 +54,7 @@ namespace Editor
 
             if (GUILayout.Button("New flock"))
             {
-                GameObject unused = new("Flock " + (container!.FlockCount + 1), typeof(Flock))
+                GameObject unused = new("Flock " + (container!.FlockCount + 1), typeof(OldFlock))
                 {
                     transform =
                     {
@@ -65,7 +65,7 @@ namespace Editor
 
             if (GUILayout.Button("New force"))
             {
-                GameObject unused = new("Force " + (container!.ForceCount + 1), typeof(Force))
+                GameObject unused = new("Force " + (container!.ForceCount + 1), typeof(OldForce))
                 {
                     transform =
                     {

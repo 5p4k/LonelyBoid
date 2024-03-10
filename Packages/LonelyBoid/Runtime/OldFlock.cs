@@ -32,16 +32,16 @@ public struct FlockData
     public float KillRadius;
 }
 
-public class BoidComparer : IComparer<Boid>
+public class BoidComparer : IComparer<OldBoid>
 {
     // Compares by Height, Length, and Width.
-    public int Compare(Boid x, Boid y)
+    public int Compare(OldBoid x, OldBoid y)
     {
         return (x == null ? 0 : x.GetInstanceID()) - (y == null ? 0 : y.GetInstanceID());
     }
 }
 
-public class Flock : MonoBehaviour
+public class OldFlock : MonoBehaviour
 {
     [Header("Spawn")] public GameObject prefab;
     public float spawnFrequency = 3.0f;
@@ -65,13 +65,13 @@ public class Flock : MonoBehaviour
     public float avoidRadius = 2f;
     public float avoidAngleTau = 0.8f;
 
-    public readonly SortedSet<Boid> Boids = new(new BoidComparer());
+    public readonly SortedSet<OldBoid> Boids = new(new BoidComparer());
 
     [Header("Visualization")] public bool includeForces = true;
 
     private float _lastSpawn;
 
-    private ObjectPool<Boid> _boidsPool;
+    private ObjectPool<OldBoid> _boidsPool;
 
     public FlockData ToBufferData()
     {
@@ -95,24 +95,24 @@ public class Flock : MonoBehaviour
         };
     }
 
-    private Boid CreateBoid()
+    private OldBoid CreateBoid()
     {
 #if UNITY_EDITOR
         var instance = PrefabUtility.InstantiatePrefab(prefab, transform) as GameObject;
 #else
         var instance = Instantiate(prefab, transform) as GameObject;
 #endif
-        var boid = instance!.GetComponent<Boid>();
+        var boid = instance!.GetComponent<OldBoid>();
 
         if (boid == null)
         {
-            boid = instance.AddComponent(typeof(Boid)) as Boid;
+            boid = instance.AddComponent(typeof(OldBoid)) as OldBoid;
         }
 
         return boid;
     }
 
-    private void OnSpawn(Boid boid)
+    private void OnSpawn(OldBoid boid)
     {
         _lastSpawn = Time.time;
         boid.flock = this;
@@ -127,26 +127,26 @@ public class Flock : MonoBehaviour
         boid.gameObject.SetActive(true);
     }
 
-    private void OnKill(Boid boid)
+    private void OnKill(OldBoid boid)
     {
         boid.gameObject.SetActive(false);
         Boids.Remove(boid);
         boid.flock = null;
     }
 
-    private void OnKillDestroy(Boid boid)
+    private void OnKillDestroy(OldBoid boid)
     {
         OnKill(boid);
         Destroy(boid.gameObject);
     }
 
     // ReSharper disable once MemberCanBePrivate.Global
-    public Boid Spawn()
+    public OldBoid Spawn()
     {
         return _boidsPool.Get();
     }
 
-    private bool ShouldKill(Boid boid)
+    private bool ShouldKill(OldBoid boid)
     {
         var radius = Vector3.Distance(boid.transform.position, transform.position);
         return (radius < killRadius) == (killRadius < spawnRadius);
@@ -154,7 +154,7 @@ public class Flock : MonoBehaviour
 
 
     // ReSharper disable once MemberCanBePrivate.Global
-    public void Kill(Boid boid)
+    public void Kill(OldBoid boid)
     {
         _boidsPool.Release(boid);
     }
@@ -173,7 +173,7 @@ public class Flock : MonoBehaviour
 
 
     // ReSharper disable once UnusedMethodReturnValue.Global
-    public Boid SpawnIfNeeded()
+    public OldBoid SpawnIfNeeded()
     {
         var spawnPeriod = 1.0f / spawnFrequency;
         if (Time.time - _lastSpawn > spawnPeriod && Boids.Count < maxCount)
@@ -186,7 +186,7 @@ public class Flock : MonoBehaviour
 
     private void Start()
     {
-        _boidsPool = new ObjectPool<Boid>(
+        _boidsPool = new ObjectPool<OldBoid>(
             CreateBoid,
             OnSpawn,
             OnKill,

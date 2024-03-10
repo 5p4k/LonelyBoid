@@ -21,7 +21,7 @@ public struct ForceData
 }
 
 
-public class Force : MonoBehaviour
+public class OldForce : MonoBehaviour
 {
     [Header("Physics")] public ForceType type = ForceType.Radial;
     public float intensity = 1.0f;

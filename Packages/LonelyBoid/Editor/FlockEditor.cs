@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Editor
 {
-    [CustomEditor(typeof(Flock))]
+    [CustomEditor(typeof(OldFlock))]
     public class FlockEditor : UnityEditor.Editor
     {
         private static void HandleRadius(Component flock, ref float radius, string description)
@@ -17,7 +17,7 @@ namespace Editor
 
         public override void OnInspectorGUI()
         {
-            var flock = target as Flock;
+            var flock = target as OldFlock;
             Debug.Assert(flock);
 
             DrawDefaultInspector();
@@ -35,7 +35,7 @@ namespace Editor
 
         public void OnSceneGUI()
         {
-            var flock = target as Flock;
+            var flock = target as OldFlock;
 
             using (new Handles.DrawingScope(Color.green))
             {
@@ -50,7 +50,7 @@ namespace Editor
         
 
         [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
-        public static void OnDrawGizmos(Flock flock, GizmoType gizmoType)
+        public static void OnDrawGizmos(OldFlock flock, GizmoType gizmoType)
         {
             var active = (gizmoType & GizmoType.Active) != 0;
 

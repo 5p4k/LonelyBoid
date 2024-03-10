@@ -3,7 +3,7 @@ using UnityEditor;
 
 namespace Editor
 {
-    [CustomEditor(typeof(Boid))]
+    [CustomEditor(typeof(OldBoid))]
     public class BoidEditor : UnityEditor.Editor
     {
         private static void DrawSector(Transform transform, float radius, float angleTau, bool solid)
@@ -25,7 +25,7 @@ namespace Editor
         }
 
         [DrawGizmo(GizmoType.InSelectionHierarchy)]
-        private static void OnDrawGizmos(Boid boid, GizmoType gizmoType)
+        private static void OnDrawGizmos(OldBoid boid, GizmoType gizmoType)
         {
             if (!boid.flock) return;
 

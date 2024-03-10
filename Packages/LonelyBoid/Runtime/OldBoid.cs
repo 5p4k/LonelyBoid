@@ -10,11 +10,11 @@ public struct BoidData
 }
 
 
-public class Boid : MonoBehaviour
+public class OldBoid : MonoBehaviour
 {
     public float speed;
 
-    [HideInInspector] public Flock flock;
+    [HideInInspector] public OldFlock flock;
 
     public BoidData ToBufferData(uint flockIndex)
     {
