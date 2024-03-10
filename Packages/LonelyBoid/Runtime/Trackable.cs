@@ -83,12 +83,78 @@ namespace saccardi.lonelyboid
             }
         }
 
+        public static Dictionary<TParentComponent, List<KeyValuePair<TComponent, T>>>
+            CollectChildren<TParentComponent, TComponent, T>(
+                IEnumerable<KeyValuePair<TComponent, T>> childToPayload,
+                IEnumerable<TParentComponent> parents = null,
+                List<KeyValuePair<TComponent, T>> missingParent = null
+            ) where TComponent : Component where TParentComponent : Component
+        {
+            parents ??= Collect<TParentComponent>();
+            Dictionary<GameObject, TParentComponent> parentGos = new(
+                parents.Select(
+                    parent => new KeyValuePair<GameObject, TParentComponent>(parent.gameObject, parent)
+                )
+            );
+            Dictionary<TParentComponent, List<KeyValuePair<TComponent, T>>> parentToChildren = new(
+                parentGos.Values.Select(
+                    parent => new KeyValuePair<TParentComponent, List<KeyValuePair<TComponent, T>>>(
+                        parent, new List<KeyValuePair<TComponent, T>>()
+                    )
+                )
+            );
+
+            foreach (var kvp in childToPayload)
+            {
+                for (var t = kvp.Key.transform; t; t = t.parent)
+                {
+                    if (!parentGos.TryGetValue(t.gameObject, out var parent)) continue;
+                    parentToChildren[parent].Add(kvp);
+                    break;
+                }
+
+                missingParent?.Add(kvp);
+            }
+
+            return parentToChildren;
+        }
+
+        public static Dictionary<TParentComponent, List<TComponent>>
+            CollectAllChildren<TParentComponent, TComponent>(
+                IEnumerable<TParentComponent> parents = null,
+                List<TComponent> missingParent = null
+            ) where TComponent : Component where TParentComponent : Component
+        {
+            var missingParentIntermediate = missingParent != null ? new List<KeyValuePair<TComponent, int>>() : null;
+
+            var retval = new Dictionary<TParentComponent, List<TComponent>>(
+                CollectChildren(
+                    Collect<TComponent>().Select(
+                        comp => new KeyValuePair<TComponent, int>(comp, 0)
+                    ),
+                    parents,
+                    missingParentIntermediate
+                ).Select(
+                    kvp => new KeyValuePair<TParentComponent, List<TComponent>>(
+                        kvp.Key, new List<TComponent>(
+                            kvp.Value.Select(kvp1 => kvp1.Key)
+                        )
+                    )
+                )
+            );
+
+            missingParent?.AddRange(missingParentIntermediate.Select(kvp => kvp.Key));
+
+            return retval;
+        }
+
         public static TParentComponent FindParentOf<TParentComponent, TComponent>(TComponent comp)
             where TComponent : Component where TParentComponent : Component
         {
             Dictionary<GameObject, TParentComponent> goToComp = new(
-                Collect<TParentComponent>().Select(parentComp =>
-                    new KeyValuePair<GameObject, TParentComponent>(parentComp.gameObject, parentComp))
+                Collect<TParentComponent>().Select(
+                    parentComp => new KeyValuePair<GameObject, TParentComponent>(parentComp.gameObject, parentComp)
+                )
             );
 
             for (var t = comp.transform; t; t = t.parent)
@@ -103,7 +169,7 @@ namespace saccardi.lonelyboid
         }
     }
 
-    public class TrackableMonoBehavior<T> : MonoBehaviour where T : MonoBehaviour
+    public class TrackableMonoBehavior<T> : MonoBehaviour where T : TrackableMonoBehavior<T>
     {
         private void OnDestroy()
         {

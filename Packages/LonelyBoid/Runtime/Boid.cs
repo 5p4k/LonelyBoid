@@ -1,38 +1,15 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
-
-public struct BoidData
+namespace saccardi.lonelyboid
 {
-    public uint FlockIndex;
-    public Vector2 Position;
-    public Vector2 Direction;
-    public float Speed;
-}
-
-
-public class Boid : MonoBehaviour
-{
-    public float speed;
-
-    [HideInInspector] public Flock flock;
-
-    public BoidData ToBufferData(uint flockIndex)
+    public class Boid : TrackableMonoBehavior<Boid>
     {
-        var t = transform;
-        return new BoidData
-        {
-            FlockIndex = flockIndex,
-            Position = t.position,
-            Direction = t.up,
-            Speed = speed
-        };
-    }
-
-    public void FromBufferData(BoidData data)
-    {
-        var t = transform;
-        t.position = data.Position;
-        t.up = data.Direction;
-        speed = data.Speed;
+        [NonSerialized] internal Flock flock;
+        [NonSerialized] internal Domain domain;
+        [NonSerialized] internal int indexInFlock = -1;
+        [NonSerialized] internal int indexInDomain = -1;
     }
 }
