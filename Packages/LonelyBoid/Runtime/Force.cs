@@ -6,18 +6,7 @@ using UnityEngine;
 
 namespace saccardi.lonelyboid
 {
-    public class Force : Leaf<Force, Domain>, IDomainObject
+    public class Force : MonoBehaviour
     {
-        public DomainObjectType Type => DomainObjectType.Force;
-
-        public Domain Domain => ((IGuidChild)this).GuidParent as Domain;
-
-
-        [SuppressMessage("ReSharper", "UnusedMember.Global")]
-        protected new static void TreeLevelRebuildInternal()
-        {
-            // Delegate this to flocks
-            Flock.TreeLevelRebuildIfNeeded();
-        }
     }
 }

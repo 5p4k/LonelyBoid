@@ -5,8 +5,7 @@ using UnityEngine;
 
 namespace saccardi.lonelyboid
 {
-    public class Boid : Leaf<Boid, Flock>
+    public class Boid : MonoBehaviour
     {
-        public Flock Flock => ((IGuidChild)this).GuidParent as Flock;
     }
 }
