@@ -4,12 +4,12 @@ using UnityEditor;
 
 namespace Editor
 {
-    [CustomEditor(typeof(OldForce))]
+    [CustomEditor(typeof(Force))]
     public class ForceEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
-            var force = target as OldForce;
+            var force = target as Force;
             Debug.Assert(force);
 
             DrawDefaultInspector();

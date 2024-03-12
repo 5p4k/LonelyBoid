@@ -2,104 +2,64 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEditor;
+using UnityEditor.TerrainTools;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace saccardi.lonelyboid
 {
-    public class Domain : TrackableMonoBehavior<Domain>
+    public enum DomainObjectType
     {
-        [NonSerialized] internal Flock[] flocks;
-        [NonSerialized] internal Force[] forces;
-        [NonSerialized] internal Boid[] boids;
+        Flock,
+        Force
+    }
 
+    public interface IDomainObject : IGuidChild
+    {
+        public DomainObjectType Type { get; }
+    }
 
-        private void RecacheLocal()
+    public class Domain : Root<Domain>
+    {
+        public IEnumerable<IDomainObject> Children =>
+            ((IGuidParent)this).GuidChildren.Select(child => child as IDomainObject);
+
+        public string TreeToString()
         {
-            for (var i = 0; i < forces.Length; ++i)
-            {
-                forces[i].domain = this;
-                forces[i].indexInDomain = i;
-            }
+            Boid.TreeLevelRebuildIfNeeded();
+            Flock.TreeLevelRebuildIfNeeded();
+            TreeLevelRebuildIfNeeded();
 
-            var boidsCount = 0;
-            for (var i = 0; i < flocks.Length; ++i)
+            var retval = gameObject.name;
+            var children = Children.ToArray();
+
+            for (var i = 0; i < children.Length; ++i)
             {
-                flocks[i].domain = this;
-                flocks[i].indexInDomain = i;
-                for (var j = 0; j < flocks[i].boids.Length; ++j)
+                retval += "\n" + (i + 1) + ". " + ((Component)children[i]).gameObject.name;
+                if (children[i].Type != DomainObjectType.Flock) continue;
+                var flock = children[i] as Flock;
+                var boids = flock!.Boids.ToArray();
+                for (var j = 0; j < boids.Length; ++j)
                 {
-                    flocks[i].boids[j].domain = this;
-                    flocks[i].boids[j].flock = flocks[i];
-                    flocks[i].boids[j].indexInFlock = j;
-                    flocks[i].boids[j].indexInDomain = boidsCount++;
+                    retval += "\n    " + (j + 1) + ". " + boids[j].gameObject.name;
                 }
             }
 
-            boids = flocks.SelectMany(flock => flock.boids).ToArray();
-            Debug.Assert(boids.Length == boidsCount);
+            return retval;
         }
+    }
 
-        public static void Recache()
+    [CustomEditor(typeof(Domain))]
+    public class DomainEditor : Editor
+    {
+        public override void OnInspectorGUI()
         {
-            var missingForces = new List<Force>();
-            var missingFlocks = new List<KeyValuePair<Flock, List<Boid>>>();
-            var missingBoids = new List<Boid>();
-            
-            // Pre-collect all domains
-            var domains = Tracker.Collect<Domain>();
-            
-            // Forces are simple
-            foreach (var kvp in Tracker.CollectAllChildren(domains, missingForces))
+            var domain = target as Domain;
+            DrawDefaultInspector();
+            if (GUILayout.Button("Print me"))
             {
-                kvp.Key.forces = kvp.Value.ToArray();
-            }
-
-            // Two-stage reloading of boids
-            var domainToFlockToBoid = Tracker.CollectChildren(
-                Tracker.CollectAllChildren<Flock, Boid>(null, missingBoids), domains, missingFlocks
-            );
-
-            foreach (var domainToFlock in domainToFlockToBoid)
-            {
-                domainToFlock.Key.flocks = domainToFlock.Value.Select(kvp => kvp.Key).ToArray();
-                foreach (var flockToBoid in domainToFlock.Value)
-                {
-                    flockToBoid.Key.boids = flockToBoid.Value.ToArray();
-                }
-            }
-
-            // Update cached indices, arrays and parent references
-            foreach (var domain in domains)
-            {
-                domain.RecacheLocal();
-            }
-            
-            // Clear all missing stuff
-            foreach (var force in missingForces)
-            {
-                force.domain = null;
-                force.indexInDomain = -1;
-            }
-            foreach (var boid in missingBoids)
-            {
-                boid.domain = null;
-                boid.indexInDomain = -1;
-                boid.flock = null;
-                boid.indexInFlock = -1;
-            }
-
-            foreach (var flockToBoid in missingFlocks)
-            {
-                flockToBoid.Key.domain = null;
-                flockToBoid.Key.indexInDomain = -1;
-                for (var i = 0; i < flockToBoid.Value.Count; ++i)
-                {
-                    flockToBoid.Value[i].flock = flockToBoid.Key;
-                    flockToBoid.Value[i].indexInFlock = i;
-                    flockToBoid.Value[i].domain = null;
-                    flockToBoid.Value[i].indexInDomain = -1;
-                }
+                Debug.Log(domain!.TreeToString());
             }
         }
     }

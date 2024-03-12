@@ -38,7 +38,7 @@ public class BoidsContainer : MonoBehaviour
     [NonSerialized] private OldFlock[] _flocks;
     [NonSerialized] private readonly DualBuffer<FlockData> _flockBuffer = new();
 
-    [NonSerialized] private OldForce[] _forces;
+    [NonSerialized] private Force[] _forces;
     [NonSerialized] private readonly DualBuffer<ForceData> _forceBuffer = new();
 
     [Header("Visualization")] public uint orbitLength = 5;
@@ -161,7 +161,7 @@ public class BoidsContainer : MonoBehaviour
     public void Reload()
     {
         _flocks = GetComponentsInChildren<OldFlock>(true);
-        _forces = GetComponentsInChildren<OldForce>(true);
+        _forces = GetComponentsInChildren<Force>(true);
     }
 
     private void Start()

@@ -65,7 +65,7 @@ namespace Editor
 
             if (GUILayout.Button("New force"))
             {
-                GameObject unused = new("Force " + (container!.ForceCount + 1), typeof(OldForce))
+                GameObject unused = new("Force " + (container!.ForceCount + 1), typeof(Force))
                 {
                     transform =
                     {

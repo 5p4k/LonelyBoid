@@ -5,11 +5,8 @@ using UnityEngine;
 
 namespace saccardi.lonelyboid
 {
-    public class Boid : TrackableMonoBehavior<Boid>
+    public class Boid : Leaf<Boid, Flock>
     {
-        [NonSerialized] internal Flock flock;
-        [NonSerialized] internal Domain domain;
-        [NonSerialized] internal int indexInFlock = -1;
-        [NonSerialized] internal int indexInDomain = -1;
+        public Flock Flock => ((IGuidChild)this).GuidParent as Flock;
     }
 }
