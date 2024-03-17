@@ -6,6 +6,12 @@ using UnityEngine;
 
 namespace saccardi.lonelyboid
 {
+    namespace IO
+    {
+        internal struct ForceData
+        {
+        }
+    }
     public class Force : MonoBehaviour
     {
     }
