@@ -10,28 +10,29 @@ namespace saccardi.lonelyboid
         private static int EntrySize => System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
         private ComputeBuffer _computeBuffer;
         private T[] _localBuffer;
-        private int _localBufferUseCount;
+
+        public int Count { get; private set; }
 
         public ArraySegment<T> Data
         {
             get
             {
                 EnsureLocalBuffer();
-                return new ArraySegment<T>(_localBuffer, 0, _localBufferUseCount);
+                return new ArraySegment<T>(_localBuffer, 0, Count);
             }
         }
 
         private void EnsureLocalBuffer()
         {
-            if (_localBuffer != null && _localBuffer.Length >= _localBufferUseCount) return;
-            _localBuffer = new T[Math.Max(1, _localBufferUseCount)];
+            if (_localBuffer != null && _localBuffer.Length >= Count) return;
+            _localBuffer = new T[Math.Max(1, Count)];
         }
 
         private void EnsureComputeBuffer()
         {
-            if (_computeBuffer != null && _computeBuffer.count >= _localBufferUseCount) return;
+            if (_computeBuffer != null && _computeBuffer.count >= Count) return;
             _computeBuffer?.Release();
-            _computeBuffer = new ComputeBuffer(Math.Max(1, _localBufferUseCount), EntrySize);
+            _computeBuffer = new ComputeBuffer(Math.Max(1, Count), EntrySize);
         }
 
         public void Release()
@@ -45,26 +46,28 @@ namespace saccardi.lonelyboid
         {
             EnsureLocalBuffer();
             EnsureComputeBuffer();
-            _computeBuffer.SetData(_localBuffer, 0, 0, _localBufferUseCount);
+            _computeBuffer.SetData(_localBuffer, 0, 0, Count);
         }
 
         public void ComputeToLocal()
         {
             EnsureLocalBuffer();
             EnsureComputeBuffer();
-            _computeBuffer.GetData(_localBuffer, 0, 0, _localBufferUseCount);
+            _computeBuffer.GetData(_localBuffer, 0, 0, Count);
         }
 
-        public void Resize(int count)
+        public ArraySegment<T> Resize(int count)
         {
-            _localBufferUseCount = count;
+            Count = count;
             EnsureLocalBuffer();
+            return Data;
         }
 
-        public void Fill(IEnumerable<T> enumerable)
+        public ArraySegment<T> Fill(IEnumerable<T> enumerable)
         {
             _localBuffer = enumerable.ToArray();
-            _localBufferUseCount = _localBuffer.Length;
+            Count = _localBuffer.Length;
+            return Data;
         }
 
         public void Bind(ComputeShader shader, int kernelIndex, int bufferID, bool update = false)
@@ -77,7 +80,7 @@ namespace saccardi.lonelyboid
         public void Bind(ComputeShader shader, int kernelIndex, int bufferID, int sizeID, bool update = false)
         {
             Bind(shader, kernelIndex, bufferID, update);
-            shader.SetInt(sizeID, _localBufferUseCount);
+            shader.SetInt(sizeID, Count);
         }
     }
 }
