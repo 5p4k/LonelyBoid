@@ -78,7 +78,7 @@ struct force_data
     {
         const float2 location = (at - position) * spatial_scale;
         const float3 input_to_noise = float3(location.x, location.y, time * temporal_scale);
-        return intensity * simplex_noise(input_to_noise).xy;
+        return intensity * SimplexNoise::simplex_noise(input_to_noise).xy;
     }
 
     float2 compute(const float2 at, const float time)
