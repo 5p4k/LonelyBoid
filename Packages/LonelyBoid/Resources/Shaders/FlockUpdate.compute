@@ -1,0 +1,53 @@
+#pragma kernel main
+
+#include "LonelyBoid.cginc"
+
+StructuredBuffer<Lonely::IO::FlockConfigData> flockConfig;
+
+RWStructuredBuffer<Lonely::IO::BoidData> boids;
+int boidsCount;
+
+StructuredBuffer<Lonely::IO::ForceData> forces;
+int forcesCount;
+
+StructuredBuffer<Lonely::IO::FlockDrivesData> flockDrives;
+
+float time;
+float deltaTime;
+
+
+[numthreads(1, 1, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    const int i = id.x;
+
+    const Lonely::Flock flock = Lonely::Flock::make(flockConfig[0]);
+    Lonely::Boid boid = Lonely::Boid::make(boids[i]);
+
+    Lonely::DrivesCalculator calc = Lonely::DrivesCalculator::make(flock, boid);
+
+    // Acceleration computation ----------------------------------------------------------------------------------------
+    float2 acceleration = flock.computeSurvivalDrive(boid);
+
+    for (int j = 0; j < boidsCount; ++j)
+    {
+        if (i == j) continue;
+        calc.update(Lonely::Boid::make(boids[j]), flockDrives[boids[j].flockIndex]);
+    }
+
+    acceleration += calc.total();
+
+    for (int k = 0; k < forcesCount; ++k)
+    {
+        const Lonely::Force force = Lonely::Force::make(forces[k]);
+        acceleration += force.compute(boid.position(), time);
+    }
+    // Velocity and position computation -------------------------------------------------------------------------------
+    const float2 velocityDelta = flock.computeVelocityDelta(boid, deltaTime, acceleration);
+    const float2 velocity = flock.clampVelocity(boid.velocity() + velocityDelta);
+
+    boid.setVelocity(velocity);
+    boid.setPosition(boid.position() + velocity * deltaTime);
+
+    boid.exportTo(boids[i]);
+}
