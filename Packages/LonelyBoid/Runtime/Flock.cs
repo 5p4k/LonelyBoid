@@ -224,10 +224,10 @@ namespace saccardi.lonelyboid
             _forcesBuffer.Bind(_updateShader, 0, IDForces, IDForcesCount);
             _updateShader.SetFloat(IDTime, Time.time);
             _updateShader.SetFloat(IDDeltaTime, Time.deltaTime);
+
+            var threadGroups = (_boidsBuffer.Count + 31) / 32;
             
-            _updateShader.Dispatch(0, _boidsBuffer.Count, 1, 1);
-            
-            _boidsBuffer.ComputeToLocal();
+            _updateShader.Dispatch(0, threadGroups, 1, 1);
         }
 
         private void _applyUpdate()

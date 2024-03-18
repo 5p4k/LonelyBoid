@@ -16,7 +16,7 @@ float time;
 float deltaTime;
 
 
-[numthreads(1, 1, 1)]
+[numthreads(32, 1, 1)]
 void main(uint3 id : SV_DispatchThreadID)
 {
     const int i = id.x;
