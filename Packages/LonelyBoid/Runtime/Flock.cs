@@ -232,7 +232,8 @@ namespace saccardi.lonelyboid
 
         private void _applyUpdate()
         {
-            // TODO on LateUpdate
+            _boidsBuffer.ComputeToLocal();
+    
             var boidData = _boidsBuffer.Data;
             var boidIndex = 0;
             foreach (var boid in _activeBoids)
