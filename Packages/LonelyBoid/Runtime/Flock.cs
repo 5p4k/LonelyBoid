@@ -64,6 +64,8 @@ namespace saccardi.lonelyboid
             public float spawnAtRadius;
             public float killAtRadius;
 
+            public float survivalDrive;
+
             public float viewRadius;
             public float viewAngleTau;
 
@@ -82,6 +84,7 @@ namespace saccardi.lonelyboid
                     origin = flock.transform.position,
                     spawnAtRadius = flock.spawnAtRadius,
                     killAtRadius = flock.killAtRadius,
+                    survivalDrive = flock.survivalDrive,
                     viewRadius = flock.viewRadius,
                     viewAngleTau = flock.viewAngleTau,
                     avoidRadius = flock.avoidRadius,
@@ -125,7 +128,7 @@ namespace saccardi.lonelyboid
 
         // Private members ---------------------------------------------------------------------------------------------
 
-        [NonSerialized] private SortedSet<Boid> _activeBoids = new();
+        [NonSerialized] private readonly SortedSet<Boid> _activeBoids = new();
         [NonSerialized] private float _lastSpawnTime = float.NegativeInfinity;
         [NonSerialized] private ObjectPool<Boid> _boidsPool;
         

@@ -45,6 +45,8 @@ namespace Lonely
             float spawnAtRadius;
             float killAtRadius;
 
+            float survivalDrive;
+
             float viewRadius;
             float viewAngleTau;
 
@@ -259,6 +261,8 @@ namespace Lonely
 
         float _spawnRadius;
         float _killRadius;
+        
+        float _survivalDrive;
 
         Sector _viewRange;
         Sector _avoidRange;
@@ -284,6 +288,7 @@ namespace Lonely
             f._origin = config.origin;
             f._spawnRadius = config.spawnAtRadius;
             f._killRadius = config.killAtRadius;
+            f._survivalDrive = config.survivalDrive;
             f._viewRange = Sector::make(config.viewRadius, config.viewAngleTau * 2.f * PI);
             f._avoidRange = Sector::make(config.avoidRadius, config.avoidAngleTau * 2.f * PI);
             f._minSpeed = config.minSpeed;
@@ -302,7 +307,7 @@ namespace Lonely
             // Go quadratically from 0 at spawnRadius to 1 at killRadius
             const float magnitude = pow(saturate((radius - _spawnRadius) / (_killRadius - _spawnRadius)), 2.f);
 
-            return direction * magnitude;
+            return direction * magnitude * _survivalDrive;
         }
 
         float2 clampVelocity(const float2 velocity) CONST_MEMBER {
