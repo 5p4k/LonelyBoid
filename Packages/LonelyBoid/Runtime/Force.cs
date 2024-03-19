@@ -29,13 +29,13 @@ namespace saccardi.lonelyboid
             public TurbulentForce turbulent;
             public RadialForce radial;
 
-            public static ForceData From(Force force)
+            public static ForceData From(Force force, float weight = 1.0f)
             {
                 return new ForceData
                 {
                     origin = force.transform.position,
                     type = (int)force.type,
-                    intensity = force.intensity,
+                    intensity = force.intensity * weight,
                     turbulent = new TurbulentForce
                     {
                         spatialScale = force.spatialScale,

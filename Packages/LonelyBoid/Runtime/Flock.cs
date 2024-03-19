@@ -168,6 +168,19 @@ namespace saccardi.lonelyboid
             _boidsBuffer.Release();
         }
 
+        private void Update()
+        {
+            _bufferPopulateConfig();
+            _bufferPopulateFlockBoids();
+            _bufferPopulateForces();
+            _dispatchUpdate();
+        }
+
+        private void LateUpdate()
+        {
+            _applyUpdate();
+        }
+
         // Buffer management -------------------------------------------------------------------------------------------
 
         private int _bufferCountBoids()
@@ -212,8 +225,13 @@ namespace saccardi.lonelyboid
 
         private void _bufferPopulateForces()
         {
-            // TODO
-            throw new NotImplementedException();
+            var forcesData = _forcesBuffer.Resize(forces.Count);
+            var forceIndex = 0;
+            foreach (var forceWeight in forces)
+            {
+                forcesData[forceIndex++] = IO.ForceData.From(forceWeight.force, forceWeight.weight);
+            }
+            _forcesBuffer.LocalToCompute();
         }
 
         private void _dispatchUpdate()
