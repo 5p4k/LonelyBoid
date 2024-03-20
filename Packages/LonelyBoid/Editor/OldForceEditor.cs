@@ -5,7 +5,7 @@ using UnityEditor;
 namespace Editor
 {
     [CustomEditor(typeof(Force))]
-    public class ForceEditor : UnityEditor.Editor
+    public class OldForceEditor : UnityEditor.Editor
     {
         public override void OnInspectorGUI()
         {
@@ -37,11 +37,11 @@ namespace Editor
             var container = BoidsContainer.FindParent(force.gameObject);
             if (!container)
             {
-                BoidsContainerEditor.MissingContainerGUI();
+                OldBoidsContainerEditor.MissingContainerGUI();
             }
             else
             {
-                BoidsContainerEditor.VisualizationGUI(container);
+                OldBoidsContainerEditor.VisualizationGUI(container);
             }
         }
     }

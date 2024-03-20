@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Editor
 {
     [CustomEditor(typeof(OldFlock))]
-    public class FlockEditor : UnityEditor.Editor
+    public class OldFlockEditor : UnityEditor.Editor
     {
         private static void HandleRadius(Component flock, ref float radius, string description)
         {
@@ -25,11 +25,11 @@ namespace Editor
             var container = BoidsContainer.FindParent(flock.gameObject);
             if (!container)
             {
-                BoidsContainerEditor.MissingContainerGUI();
+                OldBoidsContainerEditor.MissingContainerGUI();
             }
             else
             {
-                BoidsContainerEditor.VisualizationGUI(container);
+                OldBoidsContainerEditor.VisualizationGUI(container);
             }
         }
 

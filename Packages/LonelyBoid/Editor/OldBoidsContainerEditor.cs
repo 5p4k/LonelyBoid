@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Editor
 {
     [CustomEditor(typeof(BoidsContainer))]
-    public class BoidsContainerEditor : UnityEditor.Editor
+    public class OldBoidsContainerEditor : UnityEditor.Editor
     {
         public static void VisualizationGUI(BoidsContainer container)
         {

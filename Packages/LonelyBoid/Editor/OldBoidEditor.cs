@@ -4,7 +4,7 @@ using UnityEditor;
 namespace Editor
 {
     [CustomEditor(typeof(OldBoid))]
-    public class BoidEditor : UnityEditor.Editor
+    public class OldBoidEditor : UnityEditor.Editor
     {
         private static void DrawSector(Transform transform, float radius, float angleTau, bool solid)
         {
