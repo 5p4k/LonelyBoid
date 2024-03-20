@@ -2,7 +2,7 @@
     "name": "saccardi.lonelyboid.Editor",
     "rootNamespace": "saccardi.lonelyboid.Editor",
     "references": [
-        "saccardi.lonelyboid"
+        "GUID:b35ca2ee5d441cc589be10c14072ff20"
     ],
     "includePlatforms": [
         "Editor"
