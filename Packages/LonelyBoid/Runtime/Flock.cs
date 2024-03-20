@@ -186,6 +186,12 @@ namespace saccardi.lonelyboid
 
         private void Update()
         {
+            SpawnIfNeeded();
+
+            // Now you can accept newly spawned boids
+            _activeBoids.UnionWith(_spawnQueue);
+            _spawnQueue.Clear();
+
             _bufferPopulateConfig();
             _bufferPopulateFlockBoids();
             _bufferPopulateForces();
@@ -195,6 +201,11 @@ namespace saccardi.lonelyboid
         private void LateUpdate()
         {
             _applyUpdate();
+            KillStrayBoids();
+
+            // Now you can kill pending boids
+            _activeBoids.ExceptWith(_killQueue);
+            _killQueue.Clear();
         }
 
         // Buffer management -------------------------------------------------------------------------------------------
@@ -311,8 +322,10 @@ namespace saccardi.lonelyboid
             boid.transform.up = -(Quaternion.AngleAxis(Random.Range(-90, +90), Vector3.back) * deltaPos.normalized);
             boid.speed = minSpeed + Random.value * (maxSpeed - minSpeed);
 
-            _activeBoids.Add(boid);
             boid.gameObject.SetActive(true);
+
+            _spawnQueue.Add(boid);
+            _killQueue.Remove(boid);
         }
 
         private void _poolReleaseBoid(Boid boid)
@@ -323,14 +336,66 @@ namespace saccardi.lonelyboid
             }
 
             boid.gameObject.SetActive(false);
-            _activeBoids.Remove(boid);
             boid.flock = null;
+
+            _spawnQueue.Remove(boid);
+            _killQueue.Add(boid);
         }
 
         private void _poolDestroyBoid(Boid boid)
         {
             _poolReleaseBoid(boid);
             Destroy(boid.gameObject);
+        }
+
+        // Public methods ----------------------------------------------------------------------------------------------
+
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        public IEnumerable<Boid> Boids => _activeBoids
+            .Where(boid => !_killQueue.Contains(boid) && !_spawnQueue.Contains(boid)).Concat(_spawnQueue);
+
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        public Boid Spawn()
+        {
+            return _boidsPool.Get();
+        }
+
+        public void Kill(Boid boid)
+        {
+            _boidsPool.Release(boid);
+        }
+
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        public bool IsStray(Boid boid)
+        {
+            var radius = Vector3.Distance(boid.transform.position, transform.position);
+            return radius < killAtRadius == killAtRadius < spawnAtRadius;
+        }
+
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        public Boid[] KillStrayBoids()
+        {
+            var strayBoids = new List<Boid>();
+            strayBoids.AddRange(_activeBoids.Where(IsStray));
+            strayBoids.AddRange(_spawnQueue.Where(IsStray));
+
+            foreach (var boid in strayBoids)
+            {
+                _boidsPool.Release(boid);
+            }
+
+            return strayBoids.ToArray();
+        }
+
+        [return: MaybeNull]
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        public Boid SpawnIfNeeded()
+        {
+            if (Boids.Count() >= spawnMaxCount) return null;
+            var spawnPeriod = 1.0f / spawnFrequency;
+            if (!(Time.time - _lastSpawnTime > spawnPeriod)) return null;
+            _lastSpawnTime = Time.time;
+            return Spawn();
         }
     }
 }
