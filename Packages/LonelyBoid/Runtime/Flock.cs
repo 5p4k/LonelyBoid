@@ -60,7 +60,7 @@ namespace saccardi.lonelyboid
         internal struct FlockConfigData
         {
             public Vector2 origin;
-            
+
             public float spawnAtRadius;
             public float killAtRadius;
 
@@ -98,6 +98,16 @@ namespace saccardi.lonelyboid
         }
     }
 
+    internal class ByID : IComparer<Boid>
+    {
+        public int Compare(Boid x, Boid y)
+        {
+            var xId = x ? x.GetInstanceID() : 0;
+            var yId = y ? y.GetInstanceID() : 0;
+            return xId - yId;
+        }
+    }
+
     public class Flock : MonoBehaviour
     {
         [Header("General settings")] public Boid boidBlueprint;
@@ -128,10 +138,13 @@ namespace saccardi.lonelyboid
 
         // Private members ---------------------------------------------------------------------------------------------
 
-        [NonSerialized] private readonly SortedSet<Boid> _activeBoids = new();
+        // Note: SortedSets so that we can have consistent ordering
+        [NonSerialized] private readonly SortedSet<Boid> _activeBoids = new(new ByID());
+        [NonSerialized] private readonly SortedSet<Boid> _spawnQueue = new(new ByID());
+        [NonSerialized] private readonly SortedSet<Boid> _killQueue = new(new ByID());
         [NonSerialized] private float _lastSpawnTime = float.NegativeInfinity;
         [NonSerialized] private ObjectPool<Boid> _boidsPool;
-        
+
         [NonSerialized] private ComputeShader _updateShader;
         
         [NonSerialized] private DualBuffer<IO.BoidData> _boidsBuffer;
