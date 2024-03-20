@@ -182,6 +182,9 @@ namespace saccardi.lonelyboid
         {
             _boidsPool.Dispose();
             _boidsBuffer.Release();
+            _flockConfigBuffer.Release();
+            _flockDrivesBuffer.Release();
+            _forcesBuffer.Release();
         }
 
         private void Update()
