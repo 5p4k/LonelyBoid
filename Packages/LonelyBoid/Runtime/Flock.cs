@@ -146,12 +146,12 @@ namespace saccardi.lonelyboid
         [NonSerialized] private ObjectPool<Boid> _boidsPool;
 
         [NonSerialized] private ComputeShader _updateShader;
-        
-        [NonSerialized] private DualBuffer<IO.BoidData> _boidsBuffer;
-        [NonSerialized] private DualBuffer<IO.FlockConfigData> _flockConfigBuffer;
-        [NonSerialized] private DualBuffer<IO.FlockDrivesData> _flockDrivesBuffer;
-        [NonSerialized] private DualBuffer<IO.ForceData> _forcesBuffer;
-        
+
+        [NonSerialized] private readonly DualBuffer<IO.BoidData> _boidsBuffer = new();
+        [NonSerialized] private readonly DualBuffer<IO.FlockConfigData> _flockConfigBuffer = new();
+        [NonSerialized] private readonly DualBuffer<IO.FlockDrivesData> _flockDrivesBuffer = new();
+        [NonSerialized] private readonly DualBuffer<IO.ForceData> _forcesBuffer = new();
+
         // Compute shader names ----------------------------------------------------------------------------------------
         private static readonly int IDFlockConfig = Shader.PropertyToID("flockConfig");
         private static readonly int IDBoids = Shader.PropertyToID("boids");
