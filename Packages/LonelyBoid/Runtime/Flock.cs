@@ -276,27 +276,33 @@ namespace saccardi.lonelyboid
                 Debug.Assert(boidData[boidIndex].flockIndex == 0);
                 boidData[boidIndex++].ApplyTo(boid);
             }
+
+            Debug.Assert(boidIndex >= boidData.Count || boidData[boidIndex].flockIndex > 0);
         }
 
         // Boids management methods ------------------------------------------------------------------------------------
 
         private Boid _poolCreateBoid()
         {
-#if UNITY_EDITOR
-            var instance = PrefabUtility.InstantiatePrefab(boidBlueprint, transform) as GameObject;
-#else
-            var instance = Instantiate(boidBlueprint, transform) as GameObject;
-#endif
-            if (!instance!.TryGetComponent<Boid>(out var boid))
+            if (!boidBlueprint)
             {
-                throw new MissingComponentException("Boid");
+                throw new NullReferenceException("Boid blueprint must not be null.");
             }
-
+#if UNITY_EDITOR
+            var boid = PrefabUtility.InstantiatePrefab(boidBlueprint, transform) as Boid;
+#else
+            var boid = Instantiate(boidBlueprint, transform) as Boid;
+#endif
             return boid;
         }
 
         private void _poolSetupBoid(Boid boid)
         {
+            if (boid.flock != null)
+            {
+                throw new ArgumentException("This boid is not inactive.");
+            }
+
             boid.flock = this;
 
             // Randomize position and orientation
@@ -311,6 +317,11 @@ namespace saccardi.lonelyboid
 
         private void _poolReleaseBoid(Boid boid)
         {
+            if (boid.flock != this)
+            {
+                throw new ArgumentException("This boid is not active on this flock.");
+            }
+
             boid.gameObject.SetActive(false);
             _activeBoids.Remove(boid);
             boid.flock = null;
