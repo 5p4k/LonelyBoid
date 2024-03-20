@@ -201,7 +201,7 @@ namespace saccardi.lonelyboid
 
         private int _bufferCountBoids()
         {
-            return _activeBoids.Count 
+            return _activeBoids.Count
                    + alienFlocks.Sum(interactionData => interactionData.flock._activeBoids.Count);
         }
 
@@ -218,7 +218,7 @@ namespace saccardi.lonelyboid
 
             var flockIndex = 0;
             flockDrivesData[flockIndex++] = IO.FlockDrivesData.From(this);
-            
+
             foreach (var interactionData in alienFlocks)
             {
                 flockDrivesData[flockIndex++] = IO.FlockDrivesData.From(interactionData);
@@ -228,7 +228,7 @@ namespace saccardi.lonelyboid
                     boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex);
                 }
             }
-            
+
             _flockDrivesBuffer.LocalToCompute();
             _boidsBuffer.LocalToCompute();
         }
@@ -247,6 +247,7 @@ namespace saccardi.lonelyboid
             {
                 forcesData[forceIndex++] = IO.ForceData.From(forceWeight.force, forceWeight.weight);
             }
+
             _forcesBuffer.LocalToCompute();
         }
 
@@ -260,18 +261,19 @@ namespace saccardi.lonelyboid
             _updateShader.SetFloat(IDDeltaTime, Time.deltaTime);
 
             var threadGroups = (_boidsBuffer.Count + 31) / 32;
-            
+
             _updateShader.Dispatch(0, threadGroups, 1, 1);
         }
 
         private void _applyUpdate()
         {
             _boidsBuffer.ComputeToLocal();
-    
+
             var boidData = _boidsBuffer.Data;
             var boidIndex = 0;
             foreach (var boid in _activeBoids)
             {
+                Debug.Assert(boidData[boidIndex].flockIndex == 0);
                 boidData[boidIndex++].ApplyTo(boid);
             }
         }
