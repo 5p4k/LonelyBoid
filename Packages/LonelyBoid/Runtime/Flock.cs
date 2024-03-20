@@ -344,7 +344,11 @@ namespace saccardi.lonelyboid
 
         private void _poolDestroyBoid(Boid boid)
         {
-            _poolReleaseBoid(boid);
+            boid.gameObject.SetActive(false);
+            boid.flock = null;
+            _spawnQueue.Remove(boid);
+            _killQueue.Remove(boid);
+            _activeBoids.Remove(boid);
             Destroy(boid.gameObject);
         }
 
