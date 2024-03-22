@@ -5,6 +5,7 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.Rendering;
 using Random = UnityEngine.Random;
 
 
@@ -146,6 +147,7 @@ namespace saccardi.lonelyboid
         [NonSerialized] private ObjectPool<Boid> _boidsPool;
 
         [NonSerialized] private ComputeShader _updateShader;
+        [NonSerialized] private CommandBuffer _commandBuffer;
 
         [NonSerialized] private readonly DualBuffer<IO.BoidData> _boidsBuffer = new();
         [NonSerialized] private readonly DualBuffer<IO.FlockConfigData> _flockConfigBuffer = new();
@@ -176,6 +178,7 @@ namespace saccardi.lonelyboid
                 (int)capacity
             );
             _updateShader = Instantiate(Resources.Load<ComputeShader>("Shaders/FlockUpdate"));
+            _commandBuffer = new CommandBuffer();
         }
 
         private void OnDestroy()
@@ -276,8 +279,11 @@ namespace saccardi.lonelyboid
             _updateShader.SetFloat(IDDeltaTime, Time.deltaTime);
 
             var threadGroups = (_boidsBuffer.Count + 31) / 32;
-
-            _updateShader.Dispatch(0, threadGroups, 1, 1);
+            
+            _commandBuffer.Clear();
+            _commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+            _commandBuffer.DispatchCompute(_updateShader, 0, threadGroups, 1, 1);
+            Graphics.ExecuteCommandBufferAsync(_commandBuffer, ComputeQueueType.Default);
         }
 
         private void _applyUpdate()
