@@ -195,9 +195,9 @@ namespace saccardi.lonelyboid
             _activeBoids.UnionWith(_spawnQueue);
             _spawnQueue.Clear();
 
-            _bufferPopulateConfig();
-            _bufferPopulateFlockBoids();
-            _bufferPopulateForces();
+            BufferPopulateConfig(_flockConfigBuffer);
+            BufferPopulateFlockBoids(_boidsBuffer, _flockDrivesBuffer);
+            BufferPopulateForces(_forcesBuffer);
             _dispatchUpdate();
         }
 
@@ -219,10 +219,11 @@ namespace saccardi.lonelyboid
                    + alienFlocks.Sum(interactionData => interactionData.flock._activeBoids.Count);
         }
 
-        private void _bufferPopulateFlockBoids()
+        internal void BufferPopulateFlockBoids(DualBuffer<IO.BoidData> boidsBuffer,
+            DualBuffer<IO.FlockDrivesData> flockDrivesBuffer)
         {
-            var flockDrivesData = _flockDrivesBuffer.Resize(alienFlocks.Count + 1);
-            var boidData = _boidsBuffer.Resize(_bufferCountBoids());
+            var flockDrivesData = flockDrivesBuffer.Resize(alienFlocks.Count + 1);
+            var boidData = boidsBuffer.Resize(_bufferCountBoids());
 
             var boidIndex = 0;
             foreach (var boid in _activeBoids)
@@ -243,26 +244,26 @@ namespace saccardi.lonelyboid
                 }
             }
 
-            _flockDrivesBuffer.LocalToCompute();
-            _boidsBuffer.LocalToCompute();
+            flockDrivesBuffer.LocalToCompute();
+            boidsBuffer.LocalToCompute();
         }
 
-        private void _bufferPopulateConfig()
+        internal void BufferPopulateConfig(DualBuffer<IO.FlockConfigData> flockConfigBuffer)
         {
-            _flockConfigBuffer.Fill(new[] { IO.FlockConfigData.From(this) });
-            _flockConfigBuffer.LocalToCompute();
+            flockConfigBuffer.Fill(new[] { IO.FlockConfigData.From(this) });
+            flockConfigBuffer.LocalToCompute();
         }
 
-        private void _bufferPopulateForces()
+        internal void BufferPopulateForces(DualBuffer<IO.ForceData> forcesBuffer)
         {
-            var forcesData = _forcesBuffer.Resize(forces.Count);
+            var forcesData = forcesBuffer.Resize(forces.Count);
             var forceIndex = 0;
             foreach (var forceWeight in forces)
             {
                 forcesData[forceIndex++] = IO.ForceData.From(forceWeight.force, forceWeight.weight);
             }
 
-            _forcesBuffer.LocalToCompute();
+            forcesBuffer.LocalToCompute();
         }
 
         private void _dispatchUpdate()
