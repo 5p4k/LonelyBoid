@@ -38,7 +38,7 @@ void main(uint3 id : SV_DispatchThreadID)
     dummy.flockIndex = 0;
     dummy.position = orbits[baseOrbitIndex];
     dummy.direction = float2(0.f, 1.f);
-    dummy.speed = config.minSpeed;
+    dummy.speed = 0.f;
 
     Lonely::Boid boid = Lonely::Boid::make(dummy);
 
