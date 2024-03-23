@@ -1,0 +1,78 @@
+#pragma kernel main
+
+#include "LonelyBoid.cginc"
+
+StructuredBuffer<Lonely::IO::FlockConfigData> flockConfig;
+
+StructuredBuffer<Lonely::IO::BoidData> boids;
+int boidsCount;
+
+StructuredBuffer<Lonely::IO::ForceData> forces;
+int forcesCount;
+
+StructuredBuffer<Lonely::IO::FlockDrivesData> flockDrives;
+
+RWStructuredBuffer<float2> orbits;
+
+float time;
+float deltaTime;
+int stride;
+
+
+[numthreads(32, 1, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    // Orbit index
+    const int baseOrbitIndex = id.x * stride;
+
+    Lonely::IO::FlockConfigData config = flockConfig[0];
+
+    // Patch the config for using 360 degrees field of view, since our orbits are not oriented.
+    config.avoidAngleTau = 1.f;
+    config.viewAngleTau = 1.f;
+
+    const Lonely::Flock flock = Lonely::Flock::make(config);
+
+    // Build a dummy boid at the specified location looking upwards at unit speed
+    Lonely::IO::BoidData dummy;
+    dummy.flockIndex = 0;
+    dummy.position = orbits[baseOrbitIndex];
+    dummy.direction = float2(0.f, 1.f);
+    dummy.speed = config.minSpeed;
+
+    Lonely::Boid boid = Lonely::Boid::make(dummy);
+
+    float localTime = time + deltaTime;
+
+    // Loop once for every step in the orbit
+    for (int i = 1; i < stride; ++i, localTime += deltaTime)
+    {
+        Lonely::DrivesCalculator calc = Lonely::DrivesCalculator::make(flock, boid);
+
+        // Acceleration computation ------------------------------------------------------------------------------------
+        float2 acceleration = flock.computeSurvivalDrive(boid);
+
+        for (int j = 0; j < boidsCount; ++j)
+        {
+            calc.update(Lonely::Boid::make(boids[j]), flockDrives[boids[j].flockIndex]);
+        }
+
+        acceleration += calc.total();
+
+        for (int k = 0; k < forcesCount; ++k)
+        {
+            const Lonely::Force force = Lonely::Force::make(forces[k]);
+            acceleration += force.compute(boid.position(), localTime); // Note: local time here
+        }
+
+        // Velocity and position computation ---------------------------------------------------------------------------
+        const float2 velocityDelta = flock.computeVelocityDelta(boid, deltaTime, acceleration);
+        const float2 velocity = flock.clampVelocity(boid.velocity() + velocityDelta);
+
+        boid.setVelocity(velocity);
+        boid.setPosition(boid.position() + velocity * deltaTime);
+
+        // Saving boid position to orbits ------------------------------------------------------------------------------
+        orbits[baseOrbitIndex + i] = boid.position();
+    }
+}

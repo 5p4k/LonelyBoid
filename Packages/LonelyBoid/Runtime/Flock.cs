@@ -155,14 +155,14 @@ namespace saccardi.lonelyboid
         [NonSerialized] private readonly DualBuffer<IO.ForceData> _forcesBuffer = new();
 
         // Compute shader names ----------------------------------------------------------------------------------------
-        private static readonly int IDFlockConfig = Shader.PropertyToID("flockConfig");
-        private static readonly int IDBoids = Shader.PropertyToID("boids");
-        private static readonly int IDBoidsCount = Shader.PropertyToID("boidsCount");
-        private static readonly int IDForces = Shader.PropertyToID("forces");
-        private static readonly int IDForcesCount = Shader.PropertyToID("forcesCount");
-        private static readonly int IDFlockDrives = Shader.PropertyToID("flockDrives");
-        private static readonly int IDTime = Shader.PropertyToID("time");
-        private static readonly int IDDeltaTime = Shader.PropertyToID("deltaTime");
+        internal static readonly int IDFlockConfig = Shader.PropertyToID("flockConfig");
+        internal static readonly int IDBoids = Shader.PropertyToID("boids");
+        internal static readonly int IDBoidsCount = Shader.PropertyToID("boidsCount");
+        internal static readonly int IDForces = Shader.PropertyToID("forces");
+        internal static readonly int IDForcesCount = Shader.PropertyToID("forcesCount");
+        internal static readonly int IDFlockDrives = Shader.PropertyToID("flockDrives");
+        internal static readonly int IDTime = Shader.PropertyToID("time");
+        internal static readonly int IDDeltaTime = Shader.PropertyToID("deltaTime");
 
         // Events ------------------------------------------------------------------------------------------------------
 
