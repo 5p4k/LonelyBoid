@@ -11,7 +11,6 @@ namespace saccardi.lonelyboid
     public class FlockOrbits : ScriptableObject
     {
         [NonSerialized] private int _currentOrbitLength = 1;
-        [NonSerialized] private bool _needsFetch;
 
         [NonSerialized] private readonly DualBuffer<Vector2> _orbitsBuffer = new();
         [NonSerialized] private readonly DualBuffer<IO.BoidData> _boidsBuffer = new();
@@ -21,7 +20,6 @@ namespace saccardi.lonelyboid
 
         [NonSerialized] private ComputeShader _orbitsShader;
         [NonSerialized] private CommandBuffer _commandBuffer;
-        [NonSerialized] private GraphicsFence _fence;
         
         // Shader ID names ---------------------------------------------------------------------------------------------
 
@@ -42,14 +40,15 @@ namespace saccardi.lonelyboid
             set => orbitLength = Math.Max(2, value);
         }
 
-        public bool IsReady => _fence.passed;
+        [field: NonSerialized]
+        public bool NeedsFetch { get; private set; }
 
-        public Vector2[][] GetOrbits()
+        public Vector2[][] FetchOrbits()
         {
             // ReSharper disable once InvertIf
-            if (_needsFetch && IsReady)
+            if (NeedsFetch)
             {
-                _needsFetch = false;
+                NeedsFetch = false;
                 _orbitsBuffer.ComputeToLocal();
             }
 
@@ -61,48 +60,7 @@ namespace saccardi.lonelyboid
 
         public bool RequestNewOrbits(Flock flock, Rect window)
         {
-            if (!IsReady) return false;
-            _initializeOrbits(window);
-            _dispatchOrbits(flock);
-            return true;
-        }
-
-        // Implementation and event responder --------------------------------------------------------------------------
-
-        private void Awake()
-        {
-            _orbitsShader = Resources.Load<ComputeShader>("Shaders/FlockOrbits");
-            _commandBuffer = new CommandBuffer();
-        }
-
-        private void OnDestroy()
-        {
-            _orbitsBuffer.Release();
-        }
-
-        private void _initializeOrbits(Rect window)
-        {
-            var density = orbitDensity;
-            _currentOrbitLength = OrbitLength;
-            var orbitsData = _orbitsBuffer.Resize(density * density * _currentOrbitLength);
-
-
-            var delta = new Vector2(window.width / density, window.height / density);
-            var origin = window.min + delta * 0.5f;
-
-            var orbitIndex = 0;
-            for (var x = 0; x < density; ++x)
-            {
-                for (var y = 0; y < density; ++y)
-                {
-                    var position = origin + new Vector2(x, y) * delta;
-                    orbitsData[orbitIndex++ * _currentOrbitLength] = position;
-                }
-            }
-        }
-
-        private void _dispatchOrbits(Flock flock)
-        {
+            BufferPopulateOrbits(window);
             flock.BufferPopulateConfig(_flockConfigBuffer);
             flock.BufferPopulateFlockBoids(_boidsBuffer, _flockDrivesBuffer);
             if (includeForces)
@@ -128,14 +86,48 @@ namespace saccardi.lonelyboid
             Debug.Assert(_orbitsBuffer.Count % _currentOrbitLength == 0);
             var threadGroups = (_orbitsBuffer.Count / _currentOrbitLength + 31) / 32;
 
-            _commandBuffer.Clear();
+            _commandBuffer = new CommandBuffer();
             _commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
             _commandBuffer.DispatchCompute(_orbitsShader, 0, threadGroups, 1, 1);
-            _fence = _commandBuffer.CreateGraphicsFence(GraphicsFenceType.CPUSynchronisation,
-                SynchronisationStageFlags.ComputeProcessing);
 
             Graphics.ExecuteCommandBufferAsync(_commandBuffer, ComputeQueueType.Default);
-            _needsFetch = true;
+            NeedsFetch = true;
+            return true;
+        }
+
+        // Implementation and event responder --------------------------------------------------------------------------
+
+        private void Awake()
+        {
+            _orbitsShader = Resources.Load<ComputeShader>("Shaders/FlockOrbits");
+            _commandBuffer = new CommandBuffer();
+        }
+
+        private void OnDestroy()
+        {
+            _orbitsBuffer.Release();
+        }
+
+        private void BufferPopulateOrbits(Rect window)
+        {
+            var density = orbitDensity;
+            _currentOrbitLength = OrbitLength;
+            var orbitsData = _orbitsBuffer.Resize(density * density * _currentOrbitLength);
+
+
+            var delta = new Vector2(window.width / density, window.height / density);
+            var origin = window.min + delta * 0.5f;
+
+            var orbitIndex = 0;
+            for (var x = 0; x < density; ++x)
+            {
+                for (var y = 0; y < density; ++y)
+                {
+                    var position = origin + new Vector2(x, y) * delta;
+                    orbitsData[orbitIndex++ * _currentOrbitLength] = position;
+                }
+            }
+            _orbitsBuffer.LocalToCompute();
         }
     }
 }
