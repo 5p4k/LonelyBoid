@@ -29,7 +29,7 @@ namespace saccardi.lonelyboid
         // Public API --------------------------------------------------------------------------------------------------
 
         public int orbitDensity = 20;
-        public float orbitTimeStep = 0.05f;
+        public float orbitTimeStep = 0.5f;
         public bool includeForces = true;
 
         [SerializeField] private int orbitLength = 5;
