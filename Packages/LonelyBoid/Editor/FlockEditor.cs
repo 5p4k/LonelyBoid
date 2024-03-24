@@ -47,7 +47,7 @@ namespace saccardi.lonelyboid.Editor
             EditorGUILayout.LabelField("Flow field", EditorStyles.boldLabel);
             _flockOrbits.orbitDensity = EditorGUILayout.IntField("Orbit Density", _flockOrbits.orbitDensity);
             _flockOrbits.orbitTimeStep = EditorGUILayout.FloatField("Orbit Time Step", _flockOrbits.orbitTimeStep);
-            _flockOrbits.OrbitLength = EditorGUILayout.IntField("Orbit Length", _flockOrbits.OrbitLength);
+            _flockOrbits.orbitLength = EditorGUILayout.IntField("Orbit Length", _flockOrbits.orbitLength);
         }
 
 

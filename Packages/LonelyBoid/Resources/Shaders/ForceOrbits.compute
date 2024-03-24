@@ -1,0 +1,35 @@
+#pragma kernel main
+
+#include "LonelyBoid.cginc"
+
+StructuredBuffer<Lonely::IO::ForceData> forces;
+
+RWStructuredBuffer<float2> orbits;
+
+float time;
+float deltaTime;
+int stride;
+
+
+[numthreads(32, 1, 1)]
+void main(uint3 id : SV_DispatchThreadID)
+{
+    // Orbit index
+    const int baseOrbitIndex = id.x * stride;
+
+    const Lonely::Force force = Lonely::Force::make(forces[0]);
+
+    float2 position = orbits[baseOrbitIndex];
+    float2 velocity = float2(0, 0);
+
+    float localTime = time + deltaTime;
+
+    // Loop once for every step in the orbit
+    for (int i = 1; i < stride; ++i, localTime += deltaTime)
+    {
+        const float2 acceleration = force.compute(position, localTime); // Note: local time here
+        velocity += acceleration * deltaTime;
+        position += velocity * deltaTime;
+        orbits[baseOrbitIndex + i] = position;
+    }
+}
