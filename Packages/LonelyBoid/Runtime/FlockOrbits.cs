@@ -58,8 +58,19 @@ namespace saccardi.lonelyboid
                 .Select(group => group.Select(grouping => grouping.entry).ToArray()).ToArray();
         }
 
+        public void Release()
+        {
+            _orbitsBuffer.Release();
+            _boidsBuffer.Release();
+            _flockConfigBuffer.Release();
+            _flockDrivesBuffer.Release();
+            _forcesBuffer.Release();
+        }
+
         public bool RequestNewOrbits(Flock flock, Rect window)
         {
+            if (NeedsFetch) return false;
+            
             BufferPopulateOrbits(window);
             flock.BufferPopulateConfig(_flockConfigBuffer);
             flock.BufferPopulateFlockBoids(_boidsBuffer, _flockDrivesBuffer);
