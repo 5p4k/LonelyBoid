@@ -13,6 +13,7 @@ namespace saccardi.lonelyboid.Editor
         [NonSerialized] private static Vector2[][] _orbits;
         [NonSerialized] private static Flock _lastTarget;
         [NonSerialized] private static Rect _lastWindow = Rect.zero;
+        [NonSerialized] private static int _lastFrame;
 
         private static void HandleRadius(Component flock, ref float radius, string description)
         {
@@ -71,7 +72,10 @@ namespace saccardi.lonelyboid.Editor
 
         private static void Update()
         {
+            // During playing, request one update every frame
             if (!Application.isPlaying) return;
+            if (Time.frameCount == _lastFrame) return;
+            _lastFrame = Time.frameCount;
             _orbitsDirty = true;
             RequestNewOrbitsIfNeeded(_lastTarget);
         }
@@ -153,7 +157,9 @@ namespace saccardi.lonelyboid.Editor
         {
             SeenFlock(flock);
             var active = (gizmoType & GizmoType.Active) != 0;
-            if (active) RequestNewOrbitsIfNeeded(flock);
+            
+            // When not playing, request one every time gizmos need to be redrawn
+            if (!Application.isPlaying && active) RequestNewOrbitsIfNeeded(flock);
 
             using (new Handles.DrawingScope(active ? Color.green : Handles.color))
             {
