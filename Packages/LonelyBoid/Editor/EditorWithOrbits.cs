@@ -13,7 +13,7 @@ namespace saccardi.lonelyboid.Editor
     {
         // Last-type properties to ensure minimal updates -------------------------------------------------------------- 
         [field: NonSerialized] protected static Rect LastWindow = Rect.zero;
-        [field: NonSerialized] protected static int LastFrame;
+        [field: NonSerialized] protected static int LastFrame = -1;
         [field: NonSerialized] protected static T LastTarget { get; private set; }
 
         [field: NonSerialized] protected static EditorWithOrbits<T, TManager> LastEditor;
@@ -76,16 +76,16 @@ namespace saccardi.lonelyboid.Editor
         {
             if (!Application.isPlaying)
             {
-                if (LastFrame == 0) return;
+                if (LastFrame < 0) return;
 
                 // Did we just stop playing instead?
-                LastFrame = 0;
+                LastFrame = -1;
                 OrbitsDirty = true;
                 RequestNewOrbitsIfNeeded(LastTarget);
                 return;
             }
 
-            // During playing, request one update every frame
+            // During playing, request one update every frame.
             if (!liveUpdate || Time.frameCount == LastFrame) return;
             LastFrame = Time.frameCount;
             OrbitsDirty = true;
@@ -123,11 +123,12 @@ namespace saccardi.lonelyboid.Editor
 
         private static void RequestNewOrbitsIfNeeded([CanBeNull] T forTarget)
         {
+            var cam = SceneView.lastActiveSceneView ? SceneView.lastActiveSceneView.camera : null;
             // Check if we have changed the camera location
-            if (Camera.current)
+            if (cam)
             {
-                var llc = Camera.current.ViewportToWorldPoint(new Vector3(0f, 0f, 0));
-                var urc = Camera.current.ViewportToWorldPoint(new Vector3(1f, 1f, 0));
+                var llc = cam.ViewportToWorldPoint(new Vector3(0f, 0f, 0));
+                var urc = cam.ViewportToWorldPoint(new Vector3(1f, 1f, 0));
                 var window = new Rect(llc, urc - llc);
                 if (window != LastWindow)
                 {
