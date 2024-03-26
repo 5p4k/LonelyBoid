@@ -31,7 +31,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
     for (int j = 0; j < boidsCount; ++j)
     {
-        if (i == j) continue;
+        if (i == j || boids[j].flockIndex < 0) continue;  // Self or disabled boid
         calc.update(Lonely::Boid::make(boids[j]), flockDrives[boids[j].flockIndex]);
     }
 

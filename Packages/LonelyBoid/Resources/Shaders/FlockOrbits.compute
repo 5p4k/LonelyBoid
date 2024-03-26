@@ -54,6 +54,7 @@ void main(uint3 id : SV_DispatchThreadID)
 
         for (int j = 0; j < boidsCount; ++j)
         {
+            if (boids[j].flockIndex < 0) continue;  // Disabled boid
             calc.update(Lonely::Boid::make(boids[j]), flockDrives[boids[j].flockIndex]);
         }
 

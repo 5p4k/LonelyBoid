@@ -220,7 +220,7 @@ namespace saccardi.lonelyboid
             var boidData = boidsBuffer.Resize(_bufferCountBoids());
 
             var boidIndex = 0;
-            foreach (var boid in _activeBoids.Where(boid => boid.gameObject.activeSelf))
+            foreach (var boid in _activeBoids)
             {
                 boidData[boidIndex++] = IO.BoidData.From(boid, 0);
             }
@@ -232,9 +232,9 @@ namespace saccardi.lonelyboid
             {
                 flockDrivesData[flockIndex++] = IO.FlockDrivesData.From(interactionData);
 
-                if (!interactionData.flock || !interactionData.flock.gameObject.activeSelf) continue;
+                if (!interactionData.flock) continue;
 
-                foreach (var boid in interactionData.flock._activeBoids.Where(boid => boid.gameObject.activeSelf))
+                foreach (var boid in interactionData.flock._activeBoids)
                 {
                     boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex);
                 }
@@ -288,14 +288,7 @@ namespace saccardi.lonelyboid
             foreach (var boid in _activeBoids)
             {
                 Debug.Assert(boidData[boidIndex].flockIndex == 0);
-                if (boid.gameObject.activeSelf)
-                {
-                    boidData[boidIndex++].ApplyTo(boid);
-                }
-                else
-                {
-                    ++boidIndex;
-                }
+                boidData[boidIndex++].ApplyTo(boid);
             }
 
             Debug.Assert(boidIndex >= boidData.Count || boidData[boidIndex].flockIndex > 0);

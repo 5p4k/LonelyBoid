@@ -17,10 +17,11 @@ namespace saccardi.lonelyboid
 
             public static BoidData From(Boid boid, int flockIndex)
             {
+                var active = boid.flock && boid.gameObject.activeSelf && boid.flock.gameObject.activeSelf;
                 var t = boid.transform;
                 return new BoidData
                 {
-                    flockIndex = flockIndex,
+                    flockIndex = active ? flockIndex : -1,
                     position = t.position,
                     direction = t.up,
                     speed = boid.speed
@@ -29,6 +30,7 @@ namespace saccardi.lonelyboid
 
             public void ApplyTo(Boid boid)
             {
+                if (!boid.gameObject.activeSelf) return;
                 var t = boid.transform;
                 t.position = position;
                 t.up = direction;
