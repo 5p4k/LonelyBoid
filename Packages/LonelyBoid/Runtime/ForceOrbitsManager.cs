@@ -13,7 +13,7 @@ namespace saccardi.lonelyboid
 
         // Public API --------------------------------------------------------------------------------------------------
 
-        public float orbitTimeStep = 0.5f;
+        [SerializeField] public float orbitTimeStep = 0.5f;
 
         public override void Release()
         {

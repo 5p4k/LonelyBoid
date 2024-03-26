@@ -16,8 +16,8 @@ namespace saccardi.lonelyboid
 
         // Public API --------------------------------------------------------------------------------------------------
 
-        public float orbitTimeStep = 0.5f;
-        public bool includeForces = true;
+        [SerializeField] public float orbitTimeStep = 0.5f;
+        [SerializeField] public bool includeForces = true;
 
         public override void Release()
         {
