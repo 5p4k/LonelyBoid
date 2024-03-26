@@ -239,6 +239,8 @@ namespace saccardi.lonelyboid
                     boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex);
                 }
             }
+            
+            Debug.Assert(boidIndex == boidData.Count);
 
             flockDrivesBuffer.LocalToCompute();
             boidsBuffer.LocalToCompute();
