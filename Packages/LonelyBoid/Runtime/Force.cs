@@ -7,21 +7,21 @@ namespace saccardi.lonelyboid
     namespace IO
     {
         [SuppressMessage("ReSharper", "NotAccessedField.Global")]
-        internal struct TurbulentForce
+        public struct TurbulentForce
         {
             public float spatialScale;
             public float temporalScale;
         };
 
         [SuppressMessage("ReSharper", "NotAccessedField.Global")]
-        internal struct RadialForce
+        public struct RadialForce
         {
             public float falloffPower;
         };
 
 
         [SuppressMessage("ReSharper", "NotAccessedField.Global")]
-        internal struct ForceData
+        public struct ForceData
         {
             public Vector2 origin;
             public int type;

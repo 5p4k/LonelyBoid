@@ -8,7 +8,7 @@ namespace saccardi.lonelyboid
     {
         [SuppressMessage("ReSharper", "NotAccessedField.Global")]
         [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
-        internal struct BoidData
+        public struct BoidData
         {
             public int flockIndex;
             public Vector2 position;

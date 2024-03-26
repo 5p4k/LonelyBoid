@@ -30,7 +30,7 @@ namespace saccardi.lonelyboid
     namespace IO
     {
         [SuppressMessage("ReSharper", "NotAccessedField.Global")]
-        internal struct FlockDrivesData
+        public struct FlockDrivesData
         {
             public float alignment;
             public float cohesion;
@@ -58,7 +58,7 @@ namespace saccardi.lonelyboid
         }
 
         [SuppressMessage("ReSharper", "NotAccessedField.Global")]
-        internal struct FlockConfigData
+        public struct FlockConfigData
         {
             public Vector2 origin;
 
@@ -213,7 +213,7 @@ namespace saccardi.lonelyboid
                        interactionData.flock ? interactionData.flock._activeBoids.Count : 0);
         }
 
-        internal void BufferPopulateFlockBoids(DualBuffer<IO.BoidData> boidsBuffer,
+        public void BufferPopulateFlockBoids(DualBuffer<IO.BoidData> boidsBuffer,
             DualBuffer<IO.FlockDrivesData> flockDrivesBuffer)
         {
             var flockDrivesData = flockDrivesBuffer.Resize(alienFlocks.Count + 1);
@@ -244,7 +244,7 @@ namespace saccardi.lonelyboid
             boidsBuffer.LocalToCompute();
         }
 
-        internal void BufferPopulateConfig(DualBuffer<IO.FlockConfigData> flockConfigBuffer)
+        public void BufferPopulateConfig(DualBuffer<IO.FlockConfigData> flockConfigBuffer)
         {
             flockConfigBuffer.Fill(new[] { IO.FlockConfigData.From(this) });
             flockConfigBuffer.LocalToCompute();
