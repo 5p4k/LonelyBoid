@@ -1,9 +1,10 @@
+using saccardi.lonelyboid;
 using UnityEngine;
 
 public class RepelOnClick : MonoBehaviour
 {
-    public GameObject repelForce;
-    public GameObject flock;
+    public Force repelForce;
+    public Flock flock;
 
     private Camera _mainCamera;
 
@@ -22,7 +23,7 @@ public class RepelOnClick : MonoBehaviour
             var forceAnim = repelForce.GetComponent<Animator>();
             if (forceAnim)
             {
-                forceAnim.Play("PeakRepel", -1, 0.0f);
+                forceAnim.Play("ForceScatter", -1, 0.0f);
             }
         }
 
@@ -30,7 +31,7 @@ public class RepelOnClick : MonoBehaviour
         var flockAnim = flock.GetComponent<Animator>();
         if (flockAnim)
         {
-            flockAnim.Play("Scatter", -1, 0.0f);
+            flockAnim.Play("FlockScatter", -1, 0.0f);
         }
     }
 }
