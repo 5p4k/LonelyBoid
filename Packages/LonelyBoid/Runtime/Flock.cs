@@ -236,7 +236,7 @@ namespace saccardi.lonelyboid
 
                 foreach (var boid in interactionData.flock._activeBoids)
                 {
-                    boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex);
+                    boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex - 1);
                 }
             }
             
