@@ -23,6 +23,10 @@ namespace saccardi.lonelyboid.Editor
         [field: NonSerialized] protected static bool OrbitsDirty { get; set; }
         [field: NonSerialized] protected static Vector2[][] Orbits;
 
+        // Other helper objects ----------------------------------------------------------------------------------------
+        private UnityEditor.Editor _orbitsManagerEditor;
+        [SerializeField] public bool LiveUpdate = true;
+
         // Public interfaces to implement ------------------------------------------------------------------------------
 
         protected virtual void DrawGizmos(T forTarget, GizmoType gizmoType)
@@ -35,6 +39,7 @@ namespace saccardi.lonelyboid.Editor
             if (!Manager) Manager = CreateInstance<TManager>();
             EditorApplication.update += Update;
             LastEditor = this;
+            CreateCachedEditor(Manager, null, ref _orbitsManagerEditor);
         }
 
         protected virtual void OnDisable()
@@ -50,11 +55,27 @@ namespace saccardi.lonelyboid.Editor
             Manager = null;
         }
 
+        public override void OnInspectorGUI()
+        {
+            EditorGUILayout.LabelField("Orbits preview", EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            LiveUpdate = EditorGUILayout.Toggle("Live Update", LiveUpdate);
+            if (EditorGUI.EndChangeCheck())
+            {
+                OrbitsDirty = true;
+            }
+
+            if (_orbitsManagerEditor.DrawDefaultInspector())
+            {
+                OrbitsDirty = true;
+            }
+        }
+
         [SuppressMessage("ReSharper", "VirtualMemberNeverOverridden.Global")]
         protected virtual void Update()
         {
             // During playing, request one update every frame
-            if (!Application.isPlaying) return;
+            if (!Application.isPlaying || !LiveUpdate) return;
             if (Time.frameCount == LastFrame) return;
             LastFrame = Time.frameCount;
             OrbitsDirty = true;

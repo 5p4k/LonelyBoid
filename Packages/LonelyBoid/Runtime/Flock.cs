@@ -209,7 +209,8 @@ namespace saccardi.lonelyboid
         private int _bufferCountBoids()
         {
             return _activeBoids.Count
-                   + alienFlocks.Sum(interactionData => interactionData.flock._activeBoids.Count);
+                   + alienFlocks.Sum(interactionData =>
+                       interactionData.flock ? interactionData.flock._activeBoids.Count : 0);
         }
 
         internal void BufferPopulateFlockBoids(DualBuffer<IO.BoidData> boidsBuffer,
@@ -219,7 +220,7 @@ namespace saccardi.lonelyboid
             var boidData = boidsBuffer.Resize(_bufferCountBoids());
 
             var boidIndex = 0;
-            foreach (var boid in _activeBoids)
+            foreach (var boid in _activeBoids.Where(boid => boid.gameObject.activeSelf))
             {
                 boidData[boidIndex++] = IO.BoidData.From(boid, 0);
             }
@@ -231,7 +232,9 @@ namespace saccardi.lonelyboid
             {
                 flockDrivesData[flockIndex++] = IO.FlockDrivesData.From(interactionData);
 
-                foreach (var boid in interactionData.flock._activeBoids)
+                if (!interactionData.flock || !interactionData.flock.gameObject.activeSelf) continue;
+
+                foreach (var boid in interactionData.flock._activeBoids.Where(boid => boid.gameObject.activeSelf))
                 {
                     boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex);
                 }
@@ -285,7 +288,14 @@ namespace saccardi.lonelyboid
             foreach (var boid in _activeBoids)
             {
                 Debug.Assert(boidData[boidIndex].flockIndex == 0);
-                boidData[boidIndex++].ApplyTo(boid);
+                if (boid.gameObject.activeSelf)
+                {
+                    boidData[boidIndex++].ApplyTo(boid);
+                }
+                else
+                {
+                    ++boidIndex;
+                }
             }
 
             Debug.Assert(boidIndex >= boidData.Count || boidData[boidIndex].flockIndex > 0);

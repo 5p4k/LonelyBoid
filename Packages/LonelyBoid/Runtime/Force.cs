@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using Codice.CM.Common.Serialization;
 using UnityEngine;
 
 namespace saccardi.lonelyboid
@@ -31,19 +32,35 @@ namespace saccardi.lonelyboid
 
             public static ForceData From(Force force, float weight = 1.0f)
             {
+                if (force)
+                    return new ForceData
+                    {
+                        origin = force.transform.position,
+                        type = (int)force.type,
+                        intensity = force.gameObject.activeSelf ? force.intensity * weight : 0.0f,
+                        turbulent = new TurbulentForce
+                        {
+                            spatialScale = force.spatialScale,
+                            temporalScale = force.temporalScale
+                        },
+                        radial = new RadialForce
+                        {
+                            falloffPower = force.falloffPower
+                        }
+                    };
                 return new ForceData
                 {
-                    origin = force.transform.position,
-                    type = (int)force.type,
-                    intensity = force.intensity * weight,
+                    origin = Vector2.zero,
+                    type = 0,
+                    intensity = 0.0f,
                     turbulent = new TurbulentForce
                     {
-                        spatialScale = force.spatialScale,
-                        temporalScale = force.temporalScale
+                        spatialScale = 0.0f,
+                        temporalScale = 0.0f
                     },
                     radial = new RadialForce
                     {
-                        falloffPower = force.falloffPower
+                        falloffPower = 0.0f
                     }
                 };
             }

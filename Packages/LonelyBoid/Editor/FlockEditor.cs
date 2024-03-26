@@ -1,3 +1,4 @@
+using System;
 using UnityEditor;
 using UnityEngine;
 
@@ -26,25 +27,13 @@ namespace saccardi.lonelyboid.Editor
                 EditorGUILayout.Space();
             }
 
-            serializedObject.Update();
-            EditorGUI.BeginChangeCheck();
-            base.OnInspectorGUI();
-            if (EditorGUI.EndChangeCheck())
+            if (DrawDefaultInspector())
             {
                 OrbitsDirty = true;
-                serializedObject.ApplyModifiedProperties();
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Flow field", EditorStyles.boldLabel);
-            EditorGUI.BeginChangeCheck();
-            Manager.orbitDensity = EditorGUILayout.IntField("Orbit Density", Manager.orbitDensity);
-            Manager.orbitTimeStep = EditorGUILayout.FloatField("Orbit Time Step", Manager.orbitTimeStep);
-            Manager.orbitLength = EditorGUILayout.IntField("Orbit Length", Manager.orbitLength);
-            if (EditorGUI.EndChangeCheck())
-            {
-                OrbitsDirty = true;
-            }
+            base.OnInspectorGUI();
         }
 
         protected override void OnSceneGUI()

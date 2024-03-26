@@ -46,15 +46,7 @@ namespace saccardi.lonelyboid.Editor
             }
 
             EditorGUILayout.Space();
-            EditorGUILayout.LabelField("Flow field", EditorStyles.boldLabel);
-            EditorGUI.BeginChangeCheck();
-            Manager.orbitDensity = EditorGUILayout.IntField("Orbit Density", Manager.orbitDensity);
-            Manager.orbitTimeStep = EditorGUILayout.FloatField("Orbit Time Step", Manager.orbitTimeStep);
-            Manager.orbitLength = EditorGUILayout.IntField("Orbit Length", Manager.orbitLength);
-            if (EditorGUI.EndChangeCheck())
-            {
-                OrbitsDirty = true;
-            }
+            base.OnInspectorGUI();
         }
 
         [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
