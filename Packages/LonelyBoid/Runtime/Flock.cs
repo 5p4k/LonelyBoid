@@ -271,7 +271,7 @@ namespace saccardi.lonelyboid
             _updateShader.SetFloat(ShaderNames.IDTime, Time.time);
             _updateShader.SetFloat(ShaderNames.IDDeltaTime, Time.deltaTime);
 
-            var threadGroups = (_boidsBuffer.Count + 31) / 32;
+            var threadGroups = (_activeBoids.Count + 31) / 32;
 
             _commandBuffer.Clear();
             _commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
