@@ -25,7 +25,7 @@ namespace saccardi.lonelyboid.Editor
 
         // Other helper objects ----------------------------------------------------------------------------------------
         private UnityEditor.Editor _orbitsManagerEditor;
-        [SerializeField] public bool LiveUpdate = true;
+        [SerializeField] public bool liveUpdate = true;
 
         // Public interfaces to implement ------------------------------------------------------------------------------
 
@@ -59,7 +59,7 @@ namespace saccardi.lonelyboid.Editor
         {
             EditorGUILayout.LabelField("Orbits preview", EditorStyles.boldLabel);
             EditorGUI.BeginChangeCheck();
-            LiveUpdate = EditorGUILayout.Toggle("Live Update", LiveUpdate);
+            liveUpdate = EditorGUILayout.Toggle("Live Update", liveUpdate);
             if (EditorGUI.EndChangeCheck())
             {
                 OrbitsDirty = true;
@@ -74,9 +74,19 @@ namespace saccardi.lonelyboid.Editor
         [SuppressMessage("ReSharper", "VirtualMemberNeverOverridden.Global")]
         protected virtual void Update()
         {
+            if (!Application.isPlaying)
+            {
+                if (LastFrame == 0) return;
+
+                // Did we just stop playing instead?
+                LastFrame = 0;
+                OrbitsDirty = true;
+                RequestNewOrbitsIfNeeded(LastTarget);
+                return;
+            }
+
             // During playing, request one update every frame
-            if (!Application.isPlaying || !LiveUpdate) return;
-            if (Time.frameCount == LastFrame) return;
+            if (!liveUpdate || Time.frameCount == LastFrame) return;
             LastFrame = Time.frameCount;
             OrbitsDirty = true;
             RequestNewOrbitsIfNeeded(LastTarget);
@@ -94,7 +104,7 @@ namespace saccardi.lonelyboid.Editor
             // When not playing, request one every time gizmos need to be redrawn
             if (LastEditor)
             {
-                if (!Application.isPlaying && active) LastEditor.RequestNewOrbitsIfNeeded(target);
+                if (!Application.isPlaying && active) RequestNewOrbitsIfNeeded(target);
                 LastEditor.DrawGizmos(target, gizmoType);
             }
 
@@ -111,7 +121,7 @@ namespace saccardi.lonelyboid.Editor
         }
 
 
-        private void RequestNewOrbitsIfNeeded([CanBeNull] T forTarget)
+        private static void RequestNewOrbitsIfNeeded([CanBeNull] T forTarget)
         {
             // Check if we have changed the camera location
             if (Camera.current)
