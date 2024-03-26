@@ -154,16 +154,6 @@ namespace saccardi.lonelyboid
         [NonSerialized] private readonly DualBuffer<IO.FlockDrivesData> _flockDrivesBuffer = new();
         [NonSerialized] private readonly DualBuffer<IO.ForceData> _forcesBuffer = new();
 
-        // Compute shader names ----------------------------------------------------------------------------------------
-        internal static readonly int IDFlockConfig = Shader.PropertyToID("flockConfig");
-        internal static readonly int IDBoids = Shader.PropertyToID("boids");
-        internal static readonly int IDBoidsCount = Shader.PropertyToID("boidsCount");
-        internal static readonly int IDForces = Shader.PropertyToID("forces");
-        internal static readonly int IDForcesCount = Shader.PropertyToID("forcesCount");
-        internal static readonly int IDFlockDrives = Shader.PropertyToID("flockDrives");
-        internal static readonly int IDTime = Shader.PropertyToID("time");
-        internal static readonly int IDDeltaTime = Shader.PropertyToID("deltaTime");
-
         // Events ------------------------------------------------------------------------------------------------------
 
         private void Start()
@@ -271,15 +261,15 @@ namespace saccardi.lonelyboid
 
         private void _dispatchUpdate()
         {
-            _boidsBuffer.Bind(_updateShader, 0, IDBoids, IDBoidsCount);
-            _flockDrivesBuffer.Bind(_updateShader, 0, IDFlockDrives);
-            _flockConfigBuffer.Bind(_updateShader, 0, IDFlockConfig);
-            _forcesBuffer.Bind(_updateShader, 0, IDForces, IDForcesCount);
-            _updateShader.SetFloat(IDTime, Time.time);
-            _updateShader.SetFloat(IDDeltaTime, Time.deltaTime);
+            _boidsBuffer.Bind(_updateShader, 0, ShaderNames.IDBoids, ShaderNames.IDBoidsCount);
+            _flockDrivesBuffer.Bind(_updateShader, 0, ShaderNames.IDFlockDrives);
+            _flockConfigBuffer.Bind(_updateShader, 0, ShaderNames.IDFlockConfig);
+            _forcesBuffer.Bind(_updateShader, 0, ShaderNames.IDForces, ShaderNames.IDForcesCount);
+            _updateShader.SetFloat(ShaderNames.IDTime, Time.time);
+            _updateShader.SetFloat(ShaderNames.IDDeltaTime, Time.deltaTime);
 
             var threadGroups = (_boidsBuffer.Count + 31) / 32;
-            
+
             _commandBuffer.Clear();
             _commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
             _commandBuffer.DispatchCompute(_updateShader, 0, threadGroups, 1, 1);

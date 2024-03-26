@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace saccardi.lonelyboid
 {
-    public class ForceOrbits : Orbits
+    public class ForceOrbitsManager : OrbitsManager<Force>
     {
         [NonSerialized] private readonly DualBuffer<IO.ForceData> _forceBuffer = new();
 
@@ -21,15 +21,15 @@ namespace saccardi.lonelyboid
             base.Release();
         }
 
-        public bool RequestNewOrbits(Force force, Rect window)
+        public override bool RequestNewOrbits(Force force, Rect window)
         {
             if (NeedsFetch) return false;
 
-            _forceBuffer.Fill(new IO.ForceData[] { IO.ForceData.From(force) });
-            _forceBuffer.Bind(_orbitsShader, 0, Flock.IDForces);
+            _forceBuffer.Fill(new[] { IO.ForceData.From(force) });
+            _forceBuffer.Bind(_orbitsShader, 0, ShaderNames.IDForces, true);
 
-            _orbitsShader.SetFloat(Flock.IDTime, Application.isPlaying ? Time.time : 0.0f);
-            _orbitsShader.SetFloat(Flock.IDDeltaTime, orbitTimeStep);
+            _orbitsShader.SetFloat(ShaderNames.IDTime, Application.isPlaying ? Time.time : 0.0f);
+            _orbitsShader.SetFloat(ShaderNames.IDDeltaTime, orbitTimeStep);
 
             BufferPopulateOrbits(window);
             BufferBindOrbits();

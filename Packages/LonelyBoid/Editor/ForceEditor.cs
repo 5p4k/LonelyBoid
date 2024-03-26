@@ -5,12 +5,15 @@ using UnityEngine;
 namespace saccardi.lonelyboid.Editor
 {
     [CustomEditor(typeof(Force))]
-    public class ForceEditor : UnityEditor.Editor
+    public class ForceEditor : EditorWithOrbits<Force, ForceOrbitsManager>
     {
         public override void OnInspectorGUI()
         {
             var force = target as Force;
             Debug.Assert(force);
+
+            serializedObject.Update();
+            EditorGUI.BeginChangeCheck();
 
             EditorGUILayout.LabelField("Physics", EditorStyles.boldLabel);
             force.type = (ForceType)EditorGUILayout.EnumPopup(ObjectNames.NicifyVariableName("type"), force.type);
@@ -35,6 +38,29 @@ namespace saccardi.lonelyboid.Editor
                 default:
                     throw new ArgumentOutOfRangeException();
             }
+
+            if (EditorGUI.EndChangeCheck())
+            {
+                OrbitsDirty = true;
+                serializedObject.ApplyModifiedProperties();
+            }
+
+            EditorGUILayout.Space();
+            EditorGUILayout.LabelField("Flow field", EditorStyles.boldLabel);
+            EditorGUI.BeginChangeCheck();
+            Manager.orbitDensity = EditorGUILayout.IntField("Orbit Density", Manager.orbitDensity);
+            Manager.orbitTimeStep = EditorGUILayout.FloatField("Orbit Time Step", Manager.orbitTimeStep);
+            Manager.orbitLength = EditorGUILayout.IntField("Orbit Length", Manager.orbitLength);
+            if (EditorGUI.EndChangeCheck())
+            {
+                OrbitsDirty = true;
+            }
+        }
+
+        [DrawGizmo(GizmoType.InSelectionHierarchy | GizmoType.NotInSelectionHierarchy | GizmoType.Pickable)]
+        public new static void OnDrawGizmos(Force forTarget, GizmoType gizmoType)
+        {
+            EditorWithOrbits<Force, ForceOrbitsManager>.OnDrawGizmos(forTarget, gizmoType);
         }
     }
 }

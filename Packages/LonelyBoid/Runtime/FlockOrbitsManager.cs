@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace saccardi.lonelyboid
 {
-    public class FlockOrbits : Orbits
+    public class FlockOrbitsManager : OrbitsManager<Flock>
     {
         [NonSerialized] private readonly DualBuffer<IO.BoidData> _boidsBuffer = new();
         [NonSerialized] private readonly DualBuffer<IO.FlockConfigData> _flockConfigBuffer = new();
@@ -28,7 +28,7 @@ namespace saccardi.lonelyboid
             base.Release();
         }
 
-        public bool RequestNewOrbits(Flock flock, Rect window)
+        public override bool RequestNewOrbits(Flock flock, Rect window)
         {
             if (NeedsFetch) return false;
 
@@ -43,13 +43,13 @@ namespace saccardi.lonelyboid
                 _forcesBuffer.Fill(new IO.ForceData[] { });
             }
 
-            _boidsBuffer.Bind(_orbitsShader, 0, Flock.IDBoids, Flock.IDBoidsCount);
-            _flockDrivesBuffer.Bind(_orbitsShader, 0, Flock.IDFlockDrives);
-            _flockConfigBuffer.Bind(_orbitsShader, 0, Flock.IDFlockConfig);
-            _forcesBuffer.Bind(_orbitsShader, 0, Flock.IDForces, Flock.IDForcesCount);
+            _boidsBuffer.Bind(_orbitsShader, 0, ShaderNames.IDBoids, ShaderNames.IDBoidsCount);
+            _flockDrivesBuffer.Bind(_orbitsShader, 0, ShaderNames.IDFlockDrives);
+            _flockConfigBuffer.Bind(_orbitsShader, 0, ShaderNames.IDFlockConfig);
+            _forcesBuffer.Bind(_orbitsShader, 0, ShaderNames.IDForces, ShaderNames.IDForcesCount);
 
-            _orbitsShader.SetFloat(Flock.IDTime, Application.isPlaying ? Time.time : 0.0f);
-            _orbitsShader.SetFloat(Flock.IDDeltaTime, orbitTimeStep);
+            _orbitsShader.SetFloat(ShaderNames.IDTime, Application.isPlaying ? Time.time : 0.0f);
+            _orbitsShader.SetFloat(ShaderNames.IDDeltaTime, orbitTimeStep);
 
             BufferPopulateOrbits(window);
             BufferBindOrbits();

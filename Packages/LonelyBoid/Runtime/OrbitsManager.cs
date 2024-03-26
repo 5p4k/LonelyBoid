@@ -1,33 +1,32 @@
 using System;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Rendering;
 
 namespace saccardi.lonelyboid
 {
-    public abstract class Orbits : ScriptableObject
+    public abstract class OrbitsManager<T> : ScriptableObject where T : MonoBehaviour
     {
         [NonSerialized] private readonly DualBuffer<Vector2> _orbitsBuffer = new();
         [NonSerialized] private CommandBuffer _commandBuffer;
-        
-        // Shader ID names ---------------------------------------------------------------------------------------------
 
-        // ReSharper disable once MemberCanBePrivate.Global
-        internal static readonly int IDOrbits = Shader.PropertyToID("orbits");
-        private static readonly int IDStride = Shader.PropertyToID("stride");
-        
         // Protected section -------------------------------------------------------------------------------------------
-        
-        protected abstract ComputeShader OrbitsShader { get; }
 
-        [field: NonSerialized] protected int CurrentOrbitLength { get; private set; } = 1;
-        
+        protected abstract ComputeShader OrbitsShader { get; }
+        public abstract bool RequestNewOrbits(T target, Rect window);
+
+        [field: NonSerialized]
+        [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
+        protected int CurrentOrbitLength { get; private set; } = 1;
+
         protected void BufferPopulateOrbits(Rect window)
         {
             var density = orbitDensity;
             CurrentOrbitLength = orbitLength;
             var orbitsData = _orbitsBuffer.Resize(density * density * CurrentOrbitLength);
 
+            if (CurrentOrbitLength == 0) return;
 
             var delta = new Vector2(window.width / density, window.height / density);
             var origin = window.min + delta * 0.5f;
@@ -41,19 +40,22 @@ namespace saccardi.lonelyboid
                     orbitsData[orbitIndex++ * CurrentOrbitLength] = position;
                 }
             }
+
             _orbitsBuffer.LocalToCompute();
         }
 
         protected void BufferBindOrbits()
         {
-            _orbitsBuffer.Bind(OrbitsShader, 0, IDOrbits);
-            OrbitsShader.SetInt(IDStride, CurrentOrbitLength);
+            _orbitsBuffer.Bind(OrbitsShader, 0, ShaderNames.IDOrbits);
+            OrbitsShader.SetInt(ShaderNames.IDStride, CurrentOrbitLength);
         }
 
         protected void DispatchOrbits()
         {
             Debug.Assert(_orbitsBuffer.Count % CurrentOrbitLength == 0);
             var threadGroups = (_orbitsBuffer.Count / CurrentOrbitLength + 31) / 32;
+
+            if (threadGroups == 0) return;
 
             _commandBuffer = new CommandBuffer();
             _commandBuffer.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
@@ -68,8 +70,7 @@ namespace saccardi.lonelyboid
         [SerializeField] public int orbitDensity = 20;
         [SerializeField] public int orbitLength = 5;
 
-        [field: NonSerialized]
-        public bool NeedsFetch { get; private set; }
+        [field: NonSerialized] public bool NeedsFetch { get; private set; }
 
         public Vector2[][] FetchOrbits()
         {
