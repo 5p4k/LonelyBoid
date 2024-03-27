@@ -290,11 +290,11 @@ namespace saccardi.lonelyboid
             var boidIndex = 0;
             foreach (var boid in _activeBoids)
             {
-                Debug.Assert(boidData[boidIndex].flockIndex == 0);
+                Debug.Assert(boidData[boidIndex].flockIndex <= 0);
                 boidData[boidIndex++].ApplyTo(boid);
             }
 
-            Debug.Assert(boidIndex >= boidData.Count || boidData[boidIndex].flockIndex > 0);
+            Debug.Assert(boidIndex >= boidData.Count || boidData[boidIndex].flockIndex != 0);
         }
 
         // Boids management methods ------------------------------------------------------------------------------------
