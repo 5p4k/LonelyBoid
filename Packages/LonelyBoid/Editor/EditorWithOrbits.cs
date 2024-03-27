@@ -71,10 +71,12 @@ namespace saccardi.lonelyboid.Editor
             }
         }
 
+        public static bool IsPlaying => Application.isPlaying && !EditorApplication.isPaused;
+
         [SuppressMessage("ReSharper", "VirtualMemberNeverOverridden.Global")]
         protected virtual void Update()
         {
-            if (!Application.isPlaying)
+            if (!IsPlaying)
             {
                 if (LastFrame < 0) return;
 
@@ -104,7 +106,7 @@ namespace saccardi.lonelyboid.Editor
             // When not playing, request one every time gizmos need to be redrawn
             if (LastEditor)
             {
-                if (!Application.isPlaying && active) RequestNewOrbitsIfNeeded(target);
+                if (!IsPlaying && active) RequestNewOrbitsIfNeeded(target);
                 LastEditor.DrawGizmos(target, gizmoType);
             }
 
