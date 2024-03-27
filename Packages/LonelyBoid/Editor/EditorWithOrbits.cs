@@ -57,14 +57,15 @@ namespace saccardi.lonelyboid.Editor
         public override void OnInspectorGUI()
         {
             EditorGUILayout.LabelField("Orbits preview", EditorStyles.boldLabel);
-            EditorGUI.BeginChangeCheck();
-            liveUpdate = EditorGUILayout.Toggle("Live Update", liveUpdate);
-            if (EditorGUI.EndChangeCheck())
+            EditorGUILayout.HelpBox("These settings are editor-only and will not be saved.",
+                MessageType.Info);
+            if (_orbitsManagerEditor.DrawDefaultInspector())
             {
                 OrbitsDirty = true;
             }
-
-            if (_orbitsManagerEditor.DrawDefaultInspector())
+            EditorGUI.BeginChangeCheck();
+            liveUpdate = EditorGUILayout.Toggle("Live Update", liveUpdate);
+            if (EditorGUI.EndChangeCheck())
             {
                 OrbitsDirty = true;
             }
