@@ -46,13 +46,12 @@ namespace saccardi.lonelyboid.Editor
         {
             EditorApplication.update -= Update;
             LastEditor = null;
+            if (EditorApplication.isPlayingOrWillChangePlaymode && Manager) Manager.Release();
         }
 
         protected virtual void OnDestroy()
         {
-            if (!Manager) return;
-            Manager.Release();
-            Manager = null;
+            if (Manager) Manager.Release();
         }
 
         public override void OnInspectorGUI()
