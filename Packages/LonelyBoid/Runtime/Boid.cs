@@ -24,24 +24,37 @@ namespace saccardi.lonelyboid
                     flockIndex = active ? flockIndex : -1,
                     position = t.position,
                     direction = t.up,
-                    speed = boid.speed
+                    speed = boid.Speed
                 };
             }
 
             public void ApplyTo(Boid boid)
             {
                 if (!boid.gameObject.activeSelf) return;
-                var t = boid.transform;
-                t.position = position;
-                t.up = direction;
-                boid.speed = speed;
+                boid.ApplyChange(position, direction, speed);
             }
         }
     }
 
+    [SuppressMessage("ReSharper", "ClassWithVirtualMembersNeverInherited.Global")]
     public class Boid : MonoBehaviour
     {
         [NonSerialized] public Flock flock;
-        [NonSerialized] public float speed;
+
+        [field: NonSerialized]
+        public virtual float Speed
+        {
+            get;
+            [SuppressMessage("ReSharper", "MemberCanBeProtected.Global")]
+            set;
+        }
+
+        public virtual void ApplyChange(Vector2 position, Vector2 direction, float speed)
+        {
+            var t = transform;
+            t.position = position;
+            t.up = direction;
+            Speed = speed;
+        }
     }
 }

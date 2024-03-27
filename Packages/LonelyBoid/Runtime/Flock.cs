@@ -113,6 +113,7 @@ namespace saccardi.lonelyboid
     {
         [Header("General settings")] public Boid boidBlueprint;
         public uint capacity = 40;
+        public bool useKinematics;
 
         [Header("Life & death")] public float spawnAtRadius = 7f;
         public float killAtRadius = 10f;
@@ -180,14 +181,27 @@ namespace saccardi.lonelyboid
             _forcesBuffer.Release();
         }
 
+        private void FixedUpdate()
+        {
+            if (!useKinematics) return;
+            // Do a full update cycle
+            BufferPopulateConfig(_flockConfigBuffer);
+            BufferPopulateFlockBoids(_boidsBuffer, _flockDrivesBuffer);
+            BufferPopulateForces(_forcesBuffer);
+            _dispatchUpdate();
+            _applyUpdate();
+        }
+
         private void Update()
         {
             SpawnIfNeeded();
 
-            // Now you can accept newly spawned boids
+            // Accept newly spawned boids
             _activeBoids.UnionWith(_spawnQueue);
             _spawnQueue.Clear();
 
+            // Early update if not using kinematics
+            if (useKinematics) return;
             BufferPopulateConfig(_flockConfigBuffer);
             BufferPopulateFlockBoids(_boidsBuffer, _flockDrivesBuffer);
             BufferPopulateForces(_forcesBuffer);
@@ -196,10 +210,11 @@ namespace saccardi.lonelyboid
 
         private void LateUpdate()
         {
-            _applyUpdate();
-            KillStrayBoids();
+            // Late apply if not using kinematics
+            if (!useKinematics) _applyUpdate();
 
-            // Now you can kill pending boids
+            // Kill stray and pending boids
+            KillStrayBoids();
             _activeBoids.ExceptWith(_killQueue);
             _killQueue.Clear();
         }
@@ -239,7 +254,7 @@ namespace saccardi.lonelyboid
                     boidData[boidIndex++] = IO.BoidData.From(boid, flockIndex - 1);
                 }
             }
-            
+
             Debug.Assert(boidIndex == boidData.Count);
             Debug.Assert(flockIndex == flockDrivesData.Count);
 
@@ -271,10 +286,11 @@ namespace saccardi.lonelyboid
             _flockDrivesBuffer.Bind(_updateShader, 0, ShaderNames.IDFlockDrives);
             _flockConfigBuffer.Bind(_updateShader, 0, ShaderNames.IDFlockConfig);
             _forcesBuffer.Bind(_updateShader, 0, ShaderNames.IDForces, ShaderNames.IDForcesCount);
-            _updateShader.SetFloat(ShaderNames.IDTime, Time.time);
-            _updateShader.SetFloat(ShaderNames.IDDeltaTime, Time.deltaTime);
+            _updateShader.SetFloat(ShaderNames.IDTime, useKinematics ? Time.fixedTime : Time.time);
+            _updateShader.SetFloat(ShaderNames.IDDeltaTime, useKinematics ? Time.fixedDeltaTime : Time.deltaTime);
 
             var threadGroups = (_activeBoids.Count + 31) / 32;
+            
             if (threadGroups == 0) return;
 
             _commandBuffer.Clear();
@@ -325,9 +341,10 @@ namespace saccardi.lonelyboid
 
             // Randomize position and orientation
             Vector3 deltaPos = spawnAtRadius * Random.insideUnitCircle.normalized;
-            boid.transform.position = transform.position + deltaPos;
-            boid.transform.up = -(Quaternion.AngleAxis(Random.Range(-90, +90), Vector3.back) * deltaPos.normalized);
-            boid.speed = minSpeed + Random.value * (maxSpeed - minSpeed);
+            var position = transform.position + deltaPos;
+            var direction = -(Quaternion.AngleAxis(Random.Range(-90, +90), Vector3.back) * deltaPos.normalized);
+            var speed = minSpeed + Random.value * (maxSpeed - minSpeed);
+            boid.ApplyChange(position, direction, speed);
 
             boid.gameObject.SetActive(true);
 
