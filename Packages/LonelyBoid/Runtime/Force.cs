@@ -1,5 +1,4 @@
 using System.Diagnostics.CodeAnalysis;
-using Codice.CM.Common.Serialization;
 using UnityEngine;
 
 namespace saccardi.lonelyboid
