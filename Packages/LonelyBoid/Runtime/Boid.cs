@@ -24,7 +24,7 @@ namespace saccardi.lonelyboid
                     flockIndex = active ? flockIndex : -1,
                     position = t.position,
                     direction = t.up,
-                    speed = boid.Speed
+                    speed = boid.ActualSpeed
                 };
             }
 
@@ -40,21 +40,49 @@ namespace saccardi.lonelyboid
     public class Boid : MonoBehaviour
     {
         [NonSerialized] public Flock flock;
-
-        [field: NonSerialized]
-        public virtual float Speed
+        [NonSerialized] public float speed; 
+        
+        public float ActualSpeed
         {
-            get;
-            [SuppressMessage("ReSharper", "MemberCanBeProtected.Global")]
-            set;
+            get
+            {
+                if (Time.inFixedTimeStep && flock && flock.useKinematics &&
+                    TryGetComponent<Rigidbody2D>(out var rigidBody) && !rigidBody.isKinematic)
+                {
+                    return rigidBody.velocity.magnitude;
+                }
+
+                return speed;
+            }
         }
 
-        public virtual void ApplyChange(Vector2 position, Vector2 direction, float speed)
+        public virtual void ApplyChange(Vector2 position, Vector2 direction, float newSpeed)
         {
             var t = transform;
-            t.position = position;
-            t.up = direction;
-            Speed = speed;
+            // Always store the theoretical speed
+            if (flock && flock.useKinematics && TryGetComponent<Rigidbody2D>(out var rigidBody))
+            {
+                if (Time.inFixedTimeStep)
+                {
+                    // Can only support kinematics objects
+                    rigidBody.MovePosition(position);
+                    rigidBody.MoveRotation(Quaternion.FromToRotation(Vector2.up, direction));
+                }
+                else
+                {
+                    // Just update the speed and then the transform like usual
+                    rigidBody.velocity = direction * speed;
+                    t.position = position;
+                    t.up = direction;
+                }
+            }
+            else
+            {
+                // Usual transformation
+                t.position = position;
+                t.up = direction;
+            }
+            speed = newSpeed;
         }
     }
 }

@@ -20,11 +20,31 @@ namespace saccardi.lonelyboid.Editor
         public override void OnInspectorGUI()
         {
             var flock = target as Flock;
-            if (flock && !flock.boidBlueprint)
+            if (flock)
             {
-                EditorGUILayout.HelpBox("Missing Boid blueprint.",
-                    MessageType.Warning);
-                EditorGUILayout.Space();
+                if (!flock.boidBlueprint)
+                {
+                    EditorGUILayout.HelpBox("Missing Boid blueprint.", MessageType.Warning);
+                    EditorGUILayout.Space();
+                }
+                else if (flock.boidBlueprint.TryGetComponent<Rigidbody2D>(out var rigidBody))
+                {
+                    if (!rigidBody.isKinematic)
+                    {
+                        EditorGUILayout.HelpBox("Dynamic rigid bodies are not well supported. If you cannot " +
+                                                "switch the boid to kinematic, you should at least use kinematics " +
+                                                "in the flock, but the performance will be affected.",
+                            MessageType.Warning);
+                        EditorGUILayout.Space();
+                    }
+                    else if (!flock.useKinematics)
+                    {
+                        EditorGUILayout.HelpBox("The boid blueprint has a kinematic rigid body, consider " +
+                                                "enabling kinematics to improve physics performance.",
+                            MessageType.Info);
+                        EditorGUILayout.Space();
+                    }
+                }
             }
 
             if (DrawDefaultInspector())

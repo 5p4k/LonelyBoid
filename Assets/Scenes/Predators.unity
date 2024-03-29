@@ -246,6 +246,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   boidBlueprint: {fileID: 7445503880777084473, guid: 83da7418e96d479eeb897eccfd91c951, type: 3}
   capacity: 40
+  useKinematics: 0
   spawnAtRadius: 7
   killAtRadius: 10
   spawnFrequency: 3
@@ -314,6 +315,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   boidBlueprint: {fileID: 7445503880777084473, guid: ff2ee548cbcbfd9509241bd3598acf40, type: 3}
   capacity: 10
+  useKinematics: 1
   spawnAtRadius: 7
   killAtRadius: 10
   spawnFrequency: 1
