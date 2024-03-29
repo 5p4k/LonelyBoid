@@ -20,5 +20,17 @@
         "name": "Pietro Saccardi",
         "email": "lizardm4@gmail.com",
         "url": "https://github.com/5p4k"
-    }
+    },
+    "samples": [
+        {
+            "displayName": "Prey-Predator",
+            "description": "A scene where a flock chases and kills boids of another flock.",
+            "path": "Samples~/Prey-Predator"
+        },
+        {
+            "displayName": "Simple Flock",
+            "description": "A scene with a simple flock demo.",
+            "path": "Samples~/Simple-Flock"
+        }
+    ]
 }
