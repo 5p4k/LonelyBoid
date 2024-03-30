@@ -244,7 +244,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f524c6ee67bf383ebe5643d2c2a6a24, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  boidBlueprint: {fileID: 7445503880777084473, guid: fc8602c17da0ae78aa04ddef73b376af, type: 3}
+  boidBlueprint: {fileID: 7445503880777084473, guid: 0c3d3eb3aad3c626ab5f21f5ae6067e7, type: 3}
   capacity: 40
   useKinematics: 0
   spawnAtRadius: 7

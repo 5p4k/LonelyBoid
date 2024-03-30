@@ -2,7 +2,7 @@
     "name": "xyz.saccardi.lonelyboid",
     "version": "1.0.0",
     "displayName": "Lonely Boid",
-    "description": "A 2D boids library on compute shaders, with multi-flock and force fields",
+    "description": "A 2D boids library on compute shaders, multi-flock and force fields",
     "unity": "2022.3",
     "unityRelease": "16f1",
     "documentationUrl": "https://github.com/5p4k/LonelyBoid",
@@ -23,14 +23,14 @@
     },
     "samples": [
         {
-            "displayName": "Prey-Predator",
+            "displayName": "Predators",
             "description": "A scene where a flock chases and kills boids of another flock.",
-            "path": "Samples~/Prey-Predator"
+            "path": "Samples~/Predators"
         },
         {
-            "displayName": "Simple Flock",
-            "description": "A scene with a simple flock demo.",
-            "path": "Samples~/Simple-Flock"
+            "displayName": "Repel",
+            "description": "A scene with a simple flock that flees the cursor on click.",
+            "path": "Samples~/Repel"
         }
     ]
 }
