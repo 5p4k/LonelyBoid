@@ -75,15 +75,15 @@ Other limitations:
   Compute shader was good enough, but for a very large amount of boids this will probably be needed.
 
 ### How do I...
-You want to do some of the things above? That's great, here's some hint at getting started.
+You want to do some of the things above? That's great, here's some hint for getting started.
 
-**3D boids** TODO
+**3D boids** First of all all `Vector2` and `float2` fields should become 3-dimensional. `Lonely::Sector` should be changed to handle solid angles. Most calculations generalize to 3D, provided that the coordinates of the boids are all projected on the same plane (e.g. set z=0 when populating the `IO` data structures). `Flock` and `Force` will need 2D/3D variants, and that needs to be reflected in the compute shader.
 
-**Obstacle avoidance** TODO
+**Obstacle avoidance** This is rather involved. I would start like in Sebastian Lague's Boids, probing the surrounding environment within a range to check for possible obstacles. I do not have suggestions for how to handle "changing the direction to flee the obstacle". Another possibility would be to use signed distance functions in the same way as forces are defined for a pre-defined set of obstacle shapes.
 
-**Dynamic rigid bodies** TODO
+**Dynamic rigid bodies** I tried to handle this with `AddForce` and `AddTorque`, but the torque did not stabilize, and the boids start oscillating or spinning. I think the main problem is that those two `RigidBody2D` methods assume inertia, but I did not spend much time into getting this to work. The difficulty is using `AddTorque` to turn the boid to face the travel direction; I saw some solutions using a PID controller for this, that might be needed.
 
-**Pressing play can cause some memory to be leaked.** I really do not understand Unity's even system. Some of them are virtual methods, some of them are `On...` methods, some of them get called in the editor, some not. The issue here is that you would need a `OnDestroy` method that is either static, and can destroy the statically-allocated resources for storing the orbits, or one that is guaranteed to be called when you are *really, really* done and are about to swith to play mode, exit play mode and so on. In that spot, you should call the `Release` method of all the `DualBuffer` in the `Force/FlockOrbitsManager`. Alternatively, if you understand Unity's Editor lifecycle, you can restructure the editors such that the buffers are allocated when the editor starts, and deallocated when the editor closes. That could also be on a `FlockEditor` class or `ForceEditor` class. Alternatively, one could be more wasteful and just allocated them every time the editor is enabled, and deallocate them when it's disabled. That would work too.
+**Pressing play can cause some memory to be leaked.** I really do not understand Unity's even system. Some of them are virtual methods, some of them are `On...` methods, some of them get called in the editor, some not. The issue here is that you would need a `OnDestroy` method that is either static, and can destroy the statically-allocated resources for storing the orbits, or one that is guaranteed to be called when you are *really, really* done and are about to swith to play mode, exit play mode and so on. In that spot, you should call the `Release` method of all the `DualBuffer` in the `Force/FlockOrbitsManager`. Alternatively, if you understand Unity's Editor lifecycle, you can restructure the editors such that the buffers are allocated when the editor starts, and deallocated when the editor closes. That could also be in the `FlockEditor` class or `ForceEditor` class. Alternatively, one could be more wasteful and just allocate them every time the editor is enabled, and deallocate them when it's disabled. That would work too.
 
 **Inspector interface is somewhat cumbersome** PRs are welcome! I have no suggestion on how to go about that because I don't know Unity well myself.
 
